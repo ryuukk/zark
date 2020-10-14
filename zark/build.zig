@@ -10,19 +10,17 @@ pub fn build(b: *Builder) void {
     // Standard release options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const mode = b.standardReleaseOptions();
-    
 
     const exe = b.addExecutable("zark", "src/main.zig");
     exe.setTarget(target);
     exe.setBuildMode(mode);
     exe.setOutputDir("bin/");
-    
+
     exe.addCSourceFile("../libs/glad/src/glad.c", &[_][]const u8{"-std=c99"});
     exe.addIncludeDir("../libs/glad/include");
     exe.addIncludeDir("../libs/glfw/include");
     exe.addLibPath("../libs/glfw/");
-    
-    
+
     exe.linkLibC();
     exe.linkSystemLibrary("glfw3");
     exe.linkSystemLibrary("c");
@@ -34,6 +32,7 @@ pub fn build(b: *Builder) void {
     exe.install();
 
     const run_cmd = exe.run();
+
     run_cmd.step.dependOn(b.getInstallStep());
 
     const run_step = b.step("run", "Run the app");
