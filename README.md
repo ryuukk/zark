@@ -1,8 +1,9 @@
 # Run the samples
 
-- Make sure you got D installed in your system
-- ```git clone ```
-- ``./run_samples.sh``
+- Make sure you got Zig installed in your system
+
+- ```git clone --depth=1 https://github.com/ryuukk/zark.git && cd zark/zark```
+- ``zig build run``
 
 # Hello World
 
@@ -23,11 +24,11 @@ fn on_render(dt: f32) void {
 }
 
 pub fn main() anyerror!void {
-    var c = engine.Config{
+    var c = engine.Config {
         .window_title = "zark"
     };
 
-    var e = engine.Engine{
+    var e = engine.Engine {
         .config = c,
         .on_init = on_init,
         .on_update = on_update,
@@ -37,6 +38,6 @@ pub fn main() anyerror!void {
     if(!e.run())
         std.log.err("Engine failure", .{});
 
-    std.debug.print("the end", .{});
+    std.log.info("the end", .{});
 }
 ```
