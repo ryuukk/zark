@@ -9,10 +9,11 @@
 
 ```zig
 const std = @import("std");
-const engine = @import("engine.zig");
+const zark = @import("zark.zig");
+const Engine = zark.engine.Engine;
+const Config = zark.engine.Config;
 
-
-fn on_init() void {
+fn on_init(engine: *Engine) void {
     std.log.info("on_init", .{});
 }
 fn on_update(dt: f32) void {
@@ -24,11 +25,11 @@ fn on_render(dt: f32) void {
 }
 
 pub fn main() anyerror!void {
-    var c = engine.Config {
+    var c = Config {
         .window_title = "zark"
     };
 
-    var e = engine.Engine {
+    var e = Engine {
         .config = c,
         .on_init = on_init,
         .on_update = on_update,

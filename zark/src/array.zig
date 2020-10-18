@@ -45,7 +45,7 @@ pub fn Array(comptime T: type, initialCapacity: i32) type {
         pub fn init(self: *Self) void {
             var gpa = std.heap.GeneralPurposeAllocator(.{}){};
             self.allocator = &gpa.allocator;
-            self.items = gpa.allocator.alloc(T, @sizeOf(T) * @intCast(usize, self.capacity)) catch @panic("can't allocate");
+            self.items = gpa.allocator.alloc(T, self.capacity) catch @panic("can't allocate");
         }
         pub fn deinit(self: *Self) void {
             self.allocator.free(self.items);

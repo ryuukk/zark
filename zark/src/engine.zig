@@ -1,8 +1,9 @@
 const std = @import("std");
-const glad = @import("c/glad.zig");
-const glfw = @import("c/glfw.zig");
-const gfx = @import("gfx.zig");
-const input = @import("input.zig");
+const zark = @import("zark.zig");
+const glad = zark.gl;
+const glfw = zark.glfw;
+const gfx = zark.gfx;
+const input = zark.input;
 
 pub const Config = struct {
     window_title: []const u8 = undefined, // here string needed

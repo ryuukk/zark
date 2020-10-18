@@ -1,5 +1,18 @@
 const std = @import("std");
 
+
+inline fn sin(rad: f32) f32 {
+    return std.math.sin(rad);
+}
+
+inline fn cos(rad: f32) f32 {
+    return std.math.cos(rad);
+}
+
+inline fn atan2(y: f32, x: f32) f32 {
+    return std.math.atan2(f32, y, x);
+}
+
 const Vec2 = struct {
     x: f32 = 0.0,
     y: f32 = 0.0,

@@ -1,8 +1,12 @@
 const std = @import("std");
-const glfw = @import("c/glfw.zig");
-const engine = @import("engine.zig");
-const time = @import("time.zig");
-const array = @import("array.zig");
+const zark = @import("zark.zig");
+
+const glfw = zark.glfw;
+const engine = zark.engine;
+const time = zark.time;
+const array = zark.array;
+
+
 
 const KEY_DOWN: i32 = 0;
 const KEY_UP: i32 = 1;
@@ -433,6 +437,28 @@ fn convert_glfw_key_enum(glfwKey: c_int) Keys {
     return Keys.UNKNOWN;
 }
 
+fn character_for_key_code(key: i32) u8 {
+    switch (key) {
+        @enumToInt(Keys.BACKSPACE) => {
+            return 0;
+        },
+        @enumToInt(Keys.TAB) => {
+            return '\t';
+        },
+        @enumToInt(Keys.FORWARD_DEL) => {
+            return 127;
+        },
+        @enumToInt(Keys.ENTER) => {
+            return '\n';
+        },
+        else => {
+            return 0;
+        },
+    }
+
+    return 0;
+}
+
 const EventQueue = struct {
     processor: ?*InputProcessor = null,
     queue: [64]InputEvent = undefined,
@@ -467,7 +493,13 @@ const EventQueue = struct {
 
             switch (e.event_type) {
                 KEY_DOWN => {
-                    _ = processor.key_down(e.event.key_down.key);
+                    _ = processor.key_down.?(e.event.key_down.key);
+                },
+                KEY_UP => {
+                    _ = processor.key_up.?(e.event.key_up.key);
+                },
+                KEY_TYPED => {
+                    _ = processor.key_typed.?(e.event.key_typed.character);
                 },
                 else => {},
             }
@@ -488,16 +520,28 @@ const EventQueue = struct {
     }
 
     fn key_up(self: *EventQueue, keycode: i32) bool {
-        //queue_time();
-        //queue_.emplace_back(KEY_UP);
-        //queue_.emplace_back(keycode);
+        self.queue[@intCast(usize, self.queue_C)] = InputEvent{
+            .time = time.nanoseconds(),
+            .event_type = KEY_UP,
+            .event = Event{
+                .key_down = KeyUp{ .key = keycode },
+            },
+        };
+
+        self.queue_C += 1;
         return false;
     }
 
     fn key_typed(self: *EventQueue, character: u8) bool {
-        //queue_time();
-        //queue_.emplace_back(KEY_TYPED);
-        //queue_.emplace_back(character);
+        self.queue[@intCast(usize, self.queue_C)] = InputEvent{
+            .time = time.nanoseconds(),
+            .event_type = KEY_TYPED,
+            .event = Event{
+                .key_typed = KeyTyped{ .character = character },
+            },
+        };
+
+        self.queue_C += 1;
         return false;
     }
 
@@ -558,14 +602,14 @@ const EventQueue = struct {
 };
 
 pub const InputProcessor = struct {
-    key_down: fn (key: i32) bool,
-    key_up: fn (keycode: i32) bool,
-    key_typed: fn (character: u8) bool,
-    touch_down: fn (screenX: i32, screenY: i32, pointer: i32, button: i32) bool,
-    touch_up: fn (screenX: i32, screenY: i32, pointer: i32, button: i32) bool,
-    touch_dragged: fn (screenX: i32, screenY: i32, pointer: i32) bool,
-    mouse_moved: fn (screenX: i32, screenY: i32) bool,
-    scrolled: fn (amount: i32) bool,
+    key_down: ?fn (key: i32) bool = null,
+    key_up: ?fn (keycode: i32) bool = null,
+    key_typed: ?fn (character: u8) bool = null,
+    touch_down: ?fn (screenX: i32, screenY: i32, pointer: i32, button: i32) bool = null,
+    touch_up: ?fn (screenX: i32, screenY: i32, pointer: i32, button: i32) bool = null,
+    touch_dragged: ?fn (screenX: i32, screenY: i32, pointer: i32) bool = null,
+    mouse_moved: ?fn (screenX: i32, screenY: i32) bool = null,
+    scrolled: ?fn (amount: i32) bool = null,
 };
 
 pub const Input = struct {
@@ -586,6 +630,7 @@ pub const Input = struct {
 
     pub fn init(self: *Input, window: ?*glfw.GLFWwindow) void {
         _ = glfw.glfwSetKeyCallback(window, on_key_cb);
+        _ = glfw.glfwSetCharCallback(window, on_char_cb);
     }
 
     fn on_key_cb(ptr: ?*glfw.GLFWwindow, key: c_int, scancode: c_int, action: c_int, mods: c_int) callconv(.C) void {
@@ -603,13 +648,25 @@ pub const Input = struct {
                 self.just_pressed_keys[@intCast(usize, convertedKey)] = true;
                 //window.getGraphics().requestRendering();
                 self.last_character = 0;
-                //var character = characterForKeyCode(convertedKey);
-                //if (character != 0) charCallback(window1, @intCast(c_int, character));
+                var character = character_for_key_code(convertedKey);
+                if (character != 0) on_char_cb(ptr, @intCast(c_uint, character));
             },
             glfw.GLFW_RELEASE => {},
             glfw.GLFW_REPEAT => {},
             else => {},
         }
+    }
+    fn on_char_cb(ptr: ?*glfw.GLFWwindow, codepoint: c_uint) callconv(.C) void {
+        var e: *engine.Engine = @ptrCast(*engine.Engine, @alignCast(@alignOf(*engine.Engine), glfw.glfwGetWindowUserPointer(ptr)));
+        std.log.info("on_char_cb({})", .{codepoint});
+        var self = &e.input;
+
+        var cp: u8 = @intCast(u8, codepoint);
+
+        if ((@intCast(u32, cp) & 0xff00) == 0xf700) return;
+        self.last_character = cp;
+        //window.getGraphics().requestRendering();
+        _ = self.event_queue.key_typed(cp);
     }
 
     pub fn reset_polling_states(self: *Input) void {

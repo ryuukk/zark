@@ -2,6 +2,11 @@
      @cInclude("glad/glad.h");
  });
  
+
+pub const PrimitiveType = enum(c_uint) {
+    TRIANGLE = GL_TRIANGLES,
+};
+
  
 // pub const struct_gladGLversionStruct = extern struct {
 //     major: c_int,

@@ -1,7 +1,8 @@
 const std = @import("std");
-const glad = @import("c/glad.zig");
-const glfw = @import("c/glfw.zig");
-const engine = @import("engine.zig");
+const zark = @import("zark.zig");
+const glad = zark.gl;
+const glfw = zark.glfw;
+const engine = zark.engine;
 
 pub const Gfx = struct {
     window_ptr: ?*glfw.GLFWwindow = null,
