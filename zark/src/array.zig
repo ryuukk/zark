@@ -75,3 +75,43 @@ pub fn Array(comptime T: type, initialCapacity: i32) type {
     };
     return ret;
 }
+
+
+pub fn equals(comptime T: type,  lhs: []const T, rhs: []const T) bool {
+    if(lhs.len != rhs.len) return false;
+
+    for (lhs) |c, i| {
+        if(c != rhs[i]) return false;
+    }
+
+    return true;
+} 
+
+pub fn starts_width(comptime T: type,  lhs: []const T, rhs: []const T) bool {
+    if(lhs.len < rhs.len) return false;
+
+    for (rhs) |c, i| {
+        if(lhs[i] != c) return false;
+    }
+
+    return true;
+}
+
+pub fn ends_width(comptime T: type,  lhs: []const T, rhs: []const T) bool {
+    if(lhs.len < rhs.len) return false;
+
+    for (rhs) |c, i| {
+        if(lhs[(lhs.len - rhs.len) + i] != c) return false;
+    }
+
+    return true;
+}
+
+test "string" {
+
+    const string: []const u8 = "hello world";
+
+    std.debug.assert(equals(u8, string, "hello world"));
+    std.debug.assert(starts_width(u8, string, "hello"));
+    std.debug.assert(ends_width(u8, string, "world"));
+}

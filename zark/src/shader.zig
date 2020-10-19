@@ -1,5 +1,6 @@
 const std = @import("std");
 const zark = @import("zark.zig");
+const math = zark.math;
 const array = zark.array;
 const glad = zark.gl;
 
@@ -71,7 +72,7 @@ pub const ShaderProgram = struct {
 
             glad.glGetActiveAttrib(self.program, i, 128, &length, &size, &typee, buffer.ptr);
 
-            var name = self.alloc.alloc(u8, @intCast(usize, length)) catch @panic("unable to alloc");
+            var name = self.alloc.allocSentinel(u8, @intCast(usize, length), 0) catch @panic("unable to alloc");
 
             std.mem.copy(u8, name, buffer[0..@intCast(usize, length)]);
 
@@ -94,7 +95,45 @@ pub const ShaderProgram = struct {
         }
     }
 
-    fn fetch_uniforms(self: *ShaderProgram) void {}
+    fn fetch_uniforms(self: *ShaderProgram) void {
+        var numAttributes: c_int = 0;
+        glad.glGetProgramiv(self.program, glad.GL_ACTIVE_UNIFORMS, &numAttributes);
+        std.log.info("Uniforms: {}", .{numAttributes});
+        self.uniforms = self.alloc.alloc(ShaderLoc, @intCast(usize, numAttributes)) catch @panic("unable to alloc");
+
+        var i: u8 = 0;
+        while (numAttributes > 0) {
+            var buffer = self.alloc.allocSentinel(u8, 128, 0) catch @panic("unable to alloc");
+            defer self.alloc.free(buffer);
+
+            var typee: c_uint = 0;
+            var size: c_int = 0;
+            var length: c_int = 0;
+
+            glad.glGetActiveUniform(self.program, i, 128, &length, &size, &typee, buffer.ptr);
+
+            var name = self.alloc.allocSentinel(u8, @intCast(usize, length), 0) catch @panic("unable to alloc");
+
+            std.mem.copy(u8, name, buffer[0..@intCast(usize, length)]);
+
+            var location = glad.glGetUniformLocation(self.program, buffer.ptr);
+
+            std.debug.assert(location == i);
+
+            self.uniforms[i] = ShaderLoc{
+                .loc_type = LocType.UNIFORM,
+                .location = location,
+                .size = size,
+                .typee = typee,
+                .name = name,
+            };
+
+            std.log.info("Uniform: loc: {} struct: {}", .{ location, self.uniforms[i] });
+
+            numAttributes -= 1;
+            i += 1;
+        }
+    }
 
     fn compile_shaders(self: *ShaderProgram) void {
         self.v_handle = self.load_shader(true);
@@ -130,7 +169,6 @@ pub const ShaderProgram = struct {
         glad.glGetShaderiv(vs, glad.GL_COMPILE_STATUS, &compiled);
 
         if (compiled == 0) {
-            // todo: log
             var logLen: c_int = 0;
             glad.glGetShaderiv(vs, glad.GL_INFO_LOG_LENGTH, &logLen);
 
@@ -164,7 +202,7 @@ pub const ShaderProgram = struct {
     }
 
     pub fn check_managed(self: *ShaderProgram) void {
-        if(self.invalidated) {
+        if (self.invalidated) {
             @panic("not implementad");
         }
     }
@@ -174,11 +212,12 @@ pub const ShaderProgram = struct {
         glad.glUseProgram(self.program);
     }
 
-    pub fn get_attrib_loc(self: *ShaderProgram, alias:[] const u8) i32 {
-        for(self.attributes) | loc | {
-
+    pub fn get_attrib_loc(self: *ShaderProgram, alias: []const u8) i32 {
+        for (self.attributes) |loc| {
+            if (array.equals(u8, loc.name, alias)) return loc.location;
         }
-        @panic("not implemented");
+
+        @panic("i don't know what to do here yet");
     }
 
     pub fn enable_vert_attr(self: *ShaderProgram, location: i32) void {
@@ -186,18 +225,42 @@ pub const ShaderProgram = struct {
         glad.glEnableVertexAttribArray(@intCast(c_uint, location));
     }
 
-    pub fn set_vert_attr(self: *ShaderProgram,    
-     location: i32, size: c_int, gltype: c_uint, norm: bool, stride: c_int, offset: c_int) void {
-
+    pub fn set_vert_attr(self: *ShaderProgram, location: i32, size: c_int, gltype: c_uint, norm: bool, stride: c_int, offset: c_int) void {
         self.check_managed();
         // @intToPtr(?*const c_void, @intCast(usize, orr))
-        glad.glVertexAttribPointer(
-            @intCast(c_uint, location),
-            size,
-            gltype,
-            if(norm) glad.GL_TRUE else glad.GL_FALSE,
-            stride,
-            @intToPtr(?*const c_void, @intCast(usize, offset))
-        );
+        glad.glVertexAttribPointer(@intCast(c_uint, location), size, gltype, if (norm) glad.GL_TRUE else glad.GL_FALSE, stride, @intToPtr(?*const c_void, @intCast(usize, offset)));
+    }
+
+    pub fn fetch_uniform_location(self: *ShaderProgram, name: []const u8, pedantic: bool) i32 {
+        var location: i32 = -2;
+        var uniform: ?*ShaderLoc = null;
+
+        for (self.uniforms) |*u, i| {
+            if (array.equals(u8, u.name, name)) {
+                location = u.location;
+                uniform = u;
+                break;
+            }
+        }
+
+        if (location == -2) {
+            var ptr: ?[*]const u8 = name.ptr;
+            location = glad.glGetUniformLocation(self.program, ptr);
+            if (location == -1 and pedantic) {
+                @panic("what should i do?");
+            }
+            if (uniform) |u| {
+                u.location = location;
+            }
+        }
+
+        return location;
+    }
+
+    pub fn set_uniform_mat4(self: *ShaderProgram, name: []const u8, value: *const math.Mat4) void {
+        self.check_managed();
+        var location = self.fetch_uniform_location(name, true); // todo: change once static pedantic bool added
+
+        glad.glUniformMatrix4fv(location, 1, 0, &value.m00);
     }
 };

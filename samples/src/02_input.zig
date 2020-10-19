@@ -34,7 +34,7 @@ fn on_render(dt: f32) void {
 const mesh = @import("mesh.zig");
 
 pub fn main() anyerror!void {
-    var c = Config{ .window_title = "zark" };
+    var c = Config{ .window_title = "zark - sample: 02_input" };
 
     var e = Engine{
         .config = c,

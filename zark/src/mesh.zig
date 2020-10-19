@@ -54,6 +54,15 @@ pub const VertexAttribute = struct {
             ._usage_index = number_of_trailing_zeros(POSITION),
         };
     }
+    pub fn normal() VertexAttribute {
+        return VertexAttribute{
+            .usage = POSITION,
+            .num_components = 3,
+            .aliass = "a_normal",
+            .gl_type = glad.GL_FLOAT,
+            ._usage_index = number_of_trailing_zeros(POSITION),
+        };
+    }
 
     pub fn get_size_bytes(self: *VertexAttribute) i32 {
         switch (self.gl_type) {
@@ -220,8 +229,8 @@ pub const VertexBuffer = struct {
     vertices: []f32 = undefined,
     cached_locations: []i32 = undefined,
     cache_valid: bool = false,
-
     pub fn new(allocator: *std.mem.Allocator, static: bool, size: usize, attr: VertexAttributes) VertexBuffer {
+    
         
         var vsize = size * @intCast(usize, @divFloor(attr.vertex_size, 4));
 
@@ -273,7 +282,7 @@ pub const VertexBuffer = struct {
         var i: usize = 0;
         while (i < numAttributes) : (i += 1) {
             var attr = &self.attributes.attributes[i];
-            var loc = program.attributes[i].location;
+            var loc = program.get_attrib_loc(attr.aliass);
 
             program.enable_vert_attr(loc);
             program.set_vert_attr(loc, attr.num_components, attr.gl_type, attr.normalized, self.attributes.vertex_size, attr.offset);

@@ -15,7 +15,7 @@ fn on_render(dt: f32) void {
 }
 
 pub fn main() anyerror!void {
-    var c = Config{ .window_title = "zark" };
+    var c = Config{ .window_title = "zark - sample: 01_hello" };
 
     var e = Engine{
         .config = c,

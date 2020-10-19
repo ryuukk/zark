@@ -128,12 +128,16 @@ pub const Gfx = struct {
         glfw.glfwGetWindowSize(self.window_ptr, &self.logical_width, &self.logical_height);
     }
 
-    fn clear(self: *Gfx, r: f32, g: f32, b: f32, a: f32) void {
+    pub fn clear(self: *Gfx, r: f32, g: f32, b: f32, a: f32) void {
         glad.glClearColor(r, g, b, a);
         glad.glClear(glad.GL_COLOR_BUFFER_BIT | glad.GL_DEPTH_BUFFER_BIT);
     }
 
-    fn viewport(self: *Gfx, x: i32, y: i32, w: i32, h: i32) void {
+    pub fn viewport(self: *Gfx, x: i32, y: i32, w: i32, h: i32) void {
         glad.glViewport(x, y, w, h);
+    }
+
+    pub fn enable_depth_test(self: *Gfx) void {
+        glad.glEnable(glad.GL_DEPTH_TEST);
     }
 };
