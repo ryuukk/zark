@@ -11,3 +11,5 @@ pub usingnamespace @cImport({
 //    var res = glfwSetWindowIconifyCallback(window, callback);
 //    return res;
 //}
+
+const zark = @import("../zark.zig");

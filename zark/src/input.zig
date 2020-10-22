@@ -5,6 +5,7 @@ const glfw = zark.glfw;
 const engine = zark.engine;
 const time = zark.time;
 const array = zark.array;
+const math = zark.math;
 
 
 
@@ -459,6 +460,14 @@ fn character_for_key_code(key: i32) u8 {
     return 0;
 }
 
+fn convert_glfw_button(button: c_int) i8 {
+    
+    if (button == glfw.GLFW_MOUSE_BUTTON_LEFT) return 0;//Buttons.LEFT;
+    if (button == glfw.GLFW_MOUSE_BUTTON_RIGHT) return 1;//Buttons.RIGHT;
+    if (button == glfw.GLFW_MOUSE_BUTTON_MIDDLE) return 2;//Buttons.MIDDLE;
+    return -1;//Buttons::UKNOWN;
+}
+
 const EventQueue = struct {
     processor: ?*InputProcessor = null,
     queue: [64]InputEvent = undefined,
@@ -479,27 +488,52 @@ const EventQueue = struct {
         }
         var processor = self.processor orelse return;
 
+        // copy from queue
         self.processing_queue = self.queue;
         self.processing_queue_C = self.queue_C;
         self.queue_C = 0;
 
-        var q = &self.processing_queue;
-        var i: i32 = 0;
-        while (i < self.processing_queue_C) {
-            var e: InputEvent = q[@intCast(usize, i)];
-            i += 1;
+        var i: usize = 0;
+        while (i < self.processing_queue_C) : (i += 1) {
+            var e: InputEvent = self.processing_queue[i];
 
             self.current_event_time = e.time;
 
             switch (e.event_type) {
                 KEY_DOWN => {
-                    _ = processor.key_down.?(e.event.key_down.key);
+                    if(processor.key_down) |cb|
+                    _ = cb(processor, e.event.key_down.key);
                 },
                 KEY_UP => {
-                    _ = processor.key_up.?(e.event.key_up.key);
+                    if(processor.key_up) |cb|
+                    _ = cb(processor, e.event.key_up.key);
                 },
                 KEY_TYPED => {
-                    _ = processor.key_typed.?(e.event.key_typed.character);
+                    if(processor.key_typed) |cb|
+                     _ = cb(processor, e.event.key_typed.character);
+                },
+                TOUCH_UP => {
+                    if(processor.touch_up) |cb|
+                     _ = cb(processor, e.event.touch_up.screen_x, e.event.touch_up.screen_y,
+                      e.event.touch_up.pointer, e.event.touch_up.button);
+                },
+                TOUCH_DOWN => {
+                    if(processor.touch_down) |cb|
+                     _ = cb(processor, e.event.touch_down.screen_x, e.event.touch_down.screen_y,
+                      e.event.touch_down.pointer, e.event.touch_down.button);
+                },
+                MOUSE_MOVED => {
+                    if(processor.mouse_moved) |cb|
+                     _ = cb(processor, e.event.touch_moved.screen_x, e.event.touch_moved.screen_y);
+                },
+                TOUCH_DRAGGED => {
+                    if(processor.touch_dragged) |cb|
+                     _ = cb(processor, e.event.touch_dragged.screen_x, e.event.touch_dragged.screen_y,
+                      e.event.touch_dragged.pointer);
+                },
+                SCROLLED => {
+                    if(processor.scrolled) |cb|
+                     _ = cb(processor, e.event.scrolled.amount);
                 },
                 else => {},
             }
@@ -524,7 +558,7 @@ const EventQueue = struct {
             .time = time.nanoseconds(),
             .event_type = KEY_UP,
             .event = Event{
-                .key_down = KeyUp{ .key = keycode },
+                .key_up = KeyUp{ .key = keycode },
             },
         };
 
@@ -552,6 +586,15 @@ const EventQueue = struct {
         //queue_.emplace_back(screenY);
         //queue_.emplace_back(pointer);
         //queue_.emplace_back(button);
+        self.queue[@intCast(usize, self.queue_C)] = InputEvent{
+            .time = time.nanoseconds(),
+            .event_type = TOUCH_DOWN,
+            .event = Event{
+                .touch_down = TouchDown{ .screen_x = screenX, .screen_y = screenY, .pointer = pointer, .button = button },
+            },
+        };
+
+        self.queue_C += 1;
         return false;
     }
 
@@ -562,6 +605,15 @@ const EventQueue = struct {
         //queue_.emplace_back(screenY);
         //queue_.emplace_back(pointer);
         //queue_.emplace_back(button);
+        self.queue[@intCast(usize, self.queue_C)] = InputEvent{
+            .time = time.nanoseconds(),
+            .event_type = TOUCH_UP,
+            .event = Event{
+                .touch_up = TouchUp{ .screen_x = screenX, .screen_y = screenY, .pointer = pointer, .button = button },
+            },
+        };
+
+        self.queue_C += 1;
         return false;
     }
 
@@ -571,6 +623,15 @@ const EventQueue = struct {
         //queue_.emplace_back(screenX);
         //queue_.emplace_back(screenY);
         //queue_.emplace_back(pointer);
+        self.queue[@intCast(usize, self.queue_C)] = InputEvent{
+            .time = time.nanoseconds(),
+            .event_type = TOUCH_DRAGGED,
+            .event = Event{
+                .touch_dragged = TouchDragged{ .screen_x = screenX, .screen_y = screenY, .pointer = pointer },
+            },
+        };
+
+        self.queue_C += 1;
         return false;
     }
 
@@ -579,6 +640,15 @@ const EventQueue = struct {
         //queue_.emplace_back(MMOUSE_MOVED);
         //queue_.emplace_back(screenX);
         //queue_.emplace_back(screenY);
+        self.queue[@intCast(usize, self.queue_C)] = InputEvent{
+            .time = time.nanoseconds(),
+            .event_type = MOUSE_MOVED,
+            .event = Event{
+                .touch_moved = TouchMoved{ .screen_x = screenX, .screen_y = screenY },
+            },
+        };
+
+        self.queue_C += 1;
         return false;
     }
 
@@ -586,6 +656,15 @@ const EventQueue = struct {
         //queue_time();
         //queue_.emplace_back(SCROLLED);
         //queue_.emplace_back(amount);
+        self.queue[@intCast(usize, self.queue_C)] = InputEvent{
+            .time = time.nanoseconds(),
+            .event_type = SCROLLED,
+            .event = Event{
+                .scrolled = Scrolled{ .amount = amount },
+            },
+        };
+
+        self.queue_C += 1;
         return false;
     }
 
@@ -602,14 +681,14 @@ const EventQueue = struct {
 };
 
 pub const InputProcessor = struct {
-    key_down: ?fn (key: i32) bool = null,
-    key_up: ?fn (keycode: i32) bool = null,
-    key_typed: ?fn (character: u8) bool = null,
-    touch_down: ?fn (screenX: i32, screenY: i32, pointer: i32, button: i32) bool = null,
-    touch_up: ?fn (screenX: i32, screenY: i32, pointer: i32, button: i32) bool = null,
-    touch_dragged: ?fn (screenX: i32, screenY: i32, pointer: i32) bool = null,
-    mouse_moved: ?fn (screenX: i32, screenY: i32) bool = null,
-    scrolled: ?fn (amount: i32) bool = null,
+    key_down: ?fn (ptr: *InputProcessor, key: i32) bool = null,
+    key_up: ?fn (ptr: *InputProcessor, keycode: i32) bool = null,
+    key_typed: ?fn (ptr: *InputProcessor, character: u8) bool = null,
+    touch_down: ?fn (ptr: *InputProcessor, screenX: i32, screenY: i32, pointer: i32, button: i32) bool = null,
+    touch_up: ?fn (ptr: *InputProcessor, screenX: i32, screenY: i32, pointer: i32, button: i32) bool = null,
+    touch_dragged: ?fn (ptr: *InputProcessor, screenX: i32, screenY: i32, pointer: i32) bool = null,
+    mouse_moved: ?fn (ptr: *InputProcessor, screenX: i32, screenY: i32) bool = null,
+    scrolled: ?fn (ptr: *InputProcessor, amount: i32) bool = null,
 };
 
 pub const Input = struct {
@@ -631,11 +710,14 @@ pub const Input = struct {
     pub fn init(self: *Input, window: ?*glfw.GLFWwindow) void {
         _ = glfw.glfwSetKeyCallback(window, on_key_cb);
         _ = glfw.glfwSetCharCallback(window, on_char_cb);
+        _ = glfw.glfwSetScrollCallback(window, on_scroll_cb);
+        _ = glfw.glfwSetCursorPosCallback(window, on_cursor_pos_cb);
+        _ = glfw.glfwSetMouseButtonCallback(window, on_mouse_button_cb);
     }
 
     fn on_key_cb(ptr: ?*glfw.GLFWwindow, key: c_int, scancode: c_int, action: c_int, mods: c_int) callconv(.C) void {
         var e: *engine.Engine = @ptrCast(*engine.Engine, @alignCast(@alignOf(*engine.Engine), glfw.glfwGetWindowUserPointer(ptr)));
-        std.log.info("on_key_cb({}, {}, {})", .{ scancode, action, mods });
+        //std.log.info("on_key_cb({}, {}, {})", .{ scancode, action, mods });
         var self = &e.input;
 
         switch (action) {
@@ -651,14 +733,18 @@ pub const Input = struct {
                 var character = character_for_key_code(convertedKey);
                 if (character != 0) on_char_cb(ptr, @intCast(c_uint, character));
             },
-            glfw.GLFW_RELEASE => {},
+            glfw.GLFW_RELEASE => {
+                var convertedKey = convert_glfw_key(key);
+                self.pressed_keys -= 1;
+                _ = self.event_queue.key_up(convertedKey);
+            },
             glfw.GLFW_REPEAT => {},
             else => {},
         }
     }
     fn on_char_cb(ptr: ?*glfw.GLFWwindow, codepoint: c_uint) callconv(.C) void {
         var e: *engine.Engine = @ptrCast(*engine.Engine, @alignCast(@alignOf(*engine.Engine), glfw.glfwGetWindowUserPointer(ptr)));
-        std.log.info("on_char_cb({})", .{codepoint});
+        //std.log.info("on_char_cb({})", .{codepoint});
         var self = &e.input;
 
         var cp: u8 = @intCast(u8, codepoint);
@@ -667,6 +753,62 @@ pub const Input = struct {
         self.last_character = cp;
         //window.getGraphics().requestRendering();
         _ = self.event_queue.key_typed(cp);
+    }
+
+    fn on_scroll_cb(ptr: ?*glfw.GLFWwindow, xpos: f64, ypos: f64) callconv(.C) void {
+        var e: *engine.Engine = @ptrCast(*engine.Engine, @alignCast(@alignOf(*engine.Engine), glfw.glfwGetWindowUserPointer(ptr)));
+        var self = &e.input;
+        _ = self.event_queue.scrolled(-math.sign(@floatCast(f32, ypos)));
+    }
+    
+    fn on_cursor_pos_cb(ptr: ?*glfw.GLFWwindow, xpos: f64, ypos: f64) callconv(.C) void {
+        var e: *engine.Engine = @ptrCast(*engine.Engine, @alignCast(@alignOf(*engine.Engine), glfw.glfwGetWindowUserPointer(ptr)));
+        var self = &e.input;
+
+        
+        self.delta_x = (@floatToInt(i32, xpos) - self.logical_mouse_x);
+        self.delta_y = (@floatToInt(i32, ypos) - self.logical_mouse_y);
+        self.mouse_x = (@floatToInt(i32, xpos));
+        self.mouse_y = (@floatToInt(i32, ypos));
+        self.logical_mouse_x = self.mouse_x;
+        self.logical_mouse_y = self.mouse_y;
+
+        if (e.gfx.hdpi_mode == .PIXELS)
+        {
+            const xScale = @intToFloat(f32, e.gfx.back_buffer_width) / @intToFloat(f32, e.gfx.logical_width);
+            const yScale = @intToFloat(f32, e.gfx.back_buffer_height) / @intToFloat(f32, e.gfx.logical_height);
+            self.delta_x = @floatToInt(i32, @intToFloat(f32, self.delta_x) * xScale);
+            self.delta_y = @floatToInt(i32, @intToFloat(f32, self.delta_y) * yScale);
+            self.mouse_x = @floatToInt(i32, @intToFloat(f32, self.mouse_x) * xScale);
+            self.mouse_y = @floatToInt(i32, @intToFloat(f32, self.mouse_y) * yScale);
+        }
+
+        //gfx.requestRendering();
+        if (self.mouse_pressed > 0)
+        {
+            _ = self.event_queue.touch_dragged(self.mouse_x, self.mouse_y, 0);
+        }
+        else
+        {
+            _ = self.event_queue.mouse_moved(self.mouse_x, self.mouse_y);
+        }
+    }
+    
+    fn on_mouse_button_cb(ptr: ?*glfw.GLFWwindow, button: c_int, state: c_int, mods: c_int) callconv(.C) void {
+        var e: *engine.Engine = @ptrCast(*engine.Engine, @alignCast(@alignOf(*engine.Engine), glfw.glfwGetWindowUserPointer(ptr)));
+        var self = &e.input;
+
+        var b = convert_glfw_button(button);
+        if(b == -1) return;
+
+        if(state == glfw.GLFW_PRESS) {
+            self.mouse_pressed += 1;
+            self.just_touched = true;
+            _ = self.event_queue.touch_down(self.mouse_x, self.mouse_y, 0, b);
+        } else {
+            self.mouse_pressed = math.max(0, self.mouse_pressed - 1);
+            _ = self.event_queue.touch_up(self.mouse_x, self.mouse_y, 0, b);
+        }
     }
 
     pub fn reset_polling_states(self: *Input) void {
@@ -704,7 +846,18 @@ pub const Input = struct {
     }
 };
 
-const Keys = enum(i32) {
+
+
+pub const Buttons = enum(i8) {
+    UKNOWN = -1,
+    LEFT = 0,
+    RIGHT = 1,
+    MIDDLE = 2,
+    BACK = 3,
+    FORWARD = 4
+};
+
+pub const Keys = enum(i32) {
     ANY_KEY = -1,
     NUM_0,
     NUM_1,

@@ -4,8 +4,14 @@ const glad = zark.gl;
 const glfw = zark.glfw;
 const engine = zark.engine;
 
+
+const HdpiMode = enum {
+    LOGICAL, PIXELS
+};
+
 pub const Gfx = struct {
     window_ptr: ?*glfw.GLFWwindow = null,
+    hdpi_mode: HdpiMode = .LOGICAL,
     width: i32 = 1280,
     height: i32 = 720,
     back_buffer_width: i32 = -1,
@@ -127,6 +133,8 @@ pub const Gfx = struct {
         glfw.glfwGetFramebufferSize(self.window_ptr, &self.back_buffer_width, &self.back_buffer_height);
         glfw.glfwGetWindowSize(self.window_ptr, &self.logical_width, &self.logical_height);
     }
+
+
 
     pub fn clear(self: *Gfx, r: f32, g: f32, b: f32, a: f32) void {
         glad.glClearColor(r, g, b, a);

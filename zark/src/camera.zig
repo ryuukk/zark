@@ -1,5 +1,9 @@
+const std = @import("std");
 const zark = @import("zark.zig");
 const math = zark.math;
+const input = zark.input;
+const Engine = zark.engine.Engine;
+const InputProcessor = input.InputProcessor;
 const Vec3 = math.Vec3;
 const Mat4 = math.Mat4;
 
@@ -44,9 +48,144 @@ pub const Camera = struct {
         self.projection = Mat4.create_projection(math.abs(self.near), math.abs(self.far), self.fov, aspect);
 
         // todo: i don't like &
-        self.view = Mat4.create_look_at(self.position, math.Vec3.add(&self.position, &self.direction), self.up);
+        self.view = Mat4.create_look_at(&self.position, &Vec3.add(&self.position, &self.direction), &self.up);
     }
 
     fn update_orthographic(self: *Camera) void {}
 };
 
+
+const STRAFE_LEFT: i32 = @enumToInt(input.Keys.A);
+const STRAFE_RIGHT: i32 = @enumToInt(input.Keys.D);
+const FORWARD: i32 = @enumToInt(input.Keys.W);
+const BACKWARD: i32 = @enumToInt(input.Keys.S);
+const UP: i32 = @enumToInt(input.Keys.Q);
+const DOWN: i32 = @enumToInt(input.Keys.E);
+
+pub const CameraController = struct {
+    const Self = @This();
+    base: InputProcessor,
+    engine: *Engine,
+    strafe_left: bool = false,
+    strafe_right: bool = false,
+    forward: bool = false,
+    backward: bool = false,
+    up: bool = false,
+    down: bool = false,
+
+    velocity: f32 = 10,
+    degrees_per_pixel: f32 = 0.005,
+
+    camera: ?*Camera = null,
+
+    pub fn init(engine: *Engine) Self {
+        return .{
+            .base = .{
+                .touch_dragged = touch_dragged,
+                .key_up = key_up,
+                .key_down = key_down,
+            },
+            .engine = engine,
+        };
+    }
+
+    fn key_up(ptr: *InputProcessor, keycode: i32) bool {
+        var self = @fieldParentPtr(CameraController, "base", ptr);
+        switch (keycode)
+        {
+            STRAFE_LEFT => {self.strafe_left = false;},
+            STRAFE_RIGHT => {self.strafe_right = false;},
+            FORWARD => {self.forward = false;},
+            BACKWARD => {self.backward = false;},
+            UP => {self.up = false;},
+            DOWN => {self.down = false;},
+            else => { return false;},
+        }
+        return self.strafe_left or self.strafe_right or self.forward or self.backward or self.up or self.down;
+    }
+
+    fn key_down(ptr: *InputProcessor, keycode: i32) bool {
+        var self = @fieldParentPtr(CameraController, "base", ptr);
+        switch (keycode)
+        {
+            STRAFE_LEFT => {self.strafe_left = true;},
+            STRAFE_RIGHT => {self.strafe_right = true;},
+            FORWARD => {self.forward = true;},
+            BACKWARD => {self.backward = true;},
+            UP => {self.up = true;},
+            DOWN => {self.down = true;},
+            else => { return false;},
+        }
+        return self.strafe_left or self.strafe_right or self.forward or self.backward or self.up or self.down;
+    }
+
+    
+    fn touch_dragged(ptr: *InputProcessor, x: i32, y: i32, pointer: i32) bool {
+        var self = @fieldParentPtr(CameraController, "base", ptr);
+
+        const deltaX: f32 = @intToFloat(f32, -self.engine.input.delta_x) * self.degrees_per_pixel;
+        const deltaY: f32 = @intToFloat(f32, -self.engine.input.delta_y) * self.degrees_per_pixel;
+
+        const camera = self.camera orelse return false;
+
+        camera.direction = Vec3.rotate(&camera.direction, &camera.up, deltaX);
+
+        var tmp = Vec3.cross(&camera.direction, &camera.up).nor();
+
+        camera.direction = Vec3.rotate(&camera.direction, &tmp, deltaY);
+        
+        return true;
+    }
+
+
+    pub fn update(self: *Self, camera: *Camera, dt: f32) void {
+
+        self.camera = camera;
+
+        if (self.forward)
+        {
+            //camera.position += _camera.direction.nor() * (_velocity * dt);
+            camera.position = camera.position.add( &camera.direction.nor().sclf(self.velocity * dt) );
+        }
+
+        if (self.backward)
+        {
+            //_camera.position += _camera.direction.nor() * -(_velocity * dt);
+            camera.position = camera.position.add( &camera.direction.nor().sclf( -(self.velocity * dt) ) );
+        }
+
+        if (self.strafe_left)
+        {
+            //_camera.position += Vec3.cross(_camera.direction, _camera.up)
+            //    .nor() * -(_velocity * dt);
+            camera.position = camera.position.add(  
+                &Vec3.cross(&camera.direction, &camera.up).nor().sclf( -(self.velocity * dt) ) 
+            );
+        }
+
+        if (self.strafe_right)
+        {
+            //_camera.position += Vec3.cross(_camera.direction, _camera.up)
+            //    .nor() * (_velocity * dt);
+            camera.position = camera.position.add( 
+                 &Vec3.cross(&camera.direction, &camera.up).nor().sclf( self.velocity * dt )  
+            );
+        }
+
+        if (self.up)
+        {
+            //_camera.position += _camera.up.nor() * (_velocity * dt);
+            camera.position = camera.position.add( &camera.up.nor().sclf( self.velocity * dt ) );
+        }
+
+        if (self.down)
+        {
+            //_camera.position += _camera.up.nor() * -(_velocity * dt);
+            camera.position = camera.position.add( &camera.up.nor().sclf( -(self.velocity * dt) ) );
+        }
+
+        camera.update();
+
+        std.log.info("Camera: {} {} - {} {} {} {}", .{camera.direction, camera.up, self.up, self.down, self.strafe_left, self.strafe_right});      
+    }
+};

@@ -12,3 +12,6 @@ pub const camera = @import("camera.zig");
 // c stuff
 pub const gl = @import("c/glad.zig");
 pub const glfw = @import("c/glfw.zig");
+
+
+pub fn nothing() void {}

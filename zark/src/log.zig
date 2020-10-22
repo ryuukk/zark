@@ -1,6 +1,14 @@
 const std = @import("std");
 
-pub fn warnIndent(indent: usize) void {
+
+pub fn info(msg: []const u8) void {
+    std.log.info(msg, .{});
+}
+pub fn infof(comptime format: []const u8, args: anytype) void {
+    std.log.info(format, args);
+}
+
+pub fn warn_indent(indent: usize) void {
     var i: usize = 0;
     while (i < indent) : (i += 1) {
         std.debug.warn("    ", .{});
@@ -37,7 +45,7 @@ pub fn log_slice(val: anytype) void {
     }
 }
 
-pub fn prettyPrint(val: anytype, indent: usize) void {
+pub fn pretty_print(val: anytype, indent: usize) void {
     switch (@typeInfo(@TypeOf(val))) {
         .Type => std.debug.warn("{}", .{@typeName(val)}),
         .Void => std.debug.warn("void", .{}),
@@ -51,19 +59,19 @@ pub fn prettyPrint(val: anytype, indent: usize) void {
         => std.debug.warn("{}", .{val}),
         .Pointer => |p| switch (p.size) {
             .One => {
-                prettyPrint(val.*, indent);
+                pretty_print(val.*, indent);
             },
             .Many => {
                 if (p.sentinel) |sentinel| {
-                    prettyPrint(@TypeOf(val));
+                    pretty_print(@TypeOf(val));
                     std.debug.warn("{{\n");
                     var ptr = val;
                     while (ptr.* != sentinel) : (ptr += 1) {
-                        warnIndent(indent + 1);
-                        prettyPrint(ptr.*, indent + 1);
+                        warn_indent(indent + 1);
+                        pretty_print(ptr.*, indent + 1);
                         std.debug.warn(",\n", .{});
                     }
-                    warnIndent(indent);
+                    warn_indent(indent);
                     std.debug.warn("}}", .{});
                 } else {
                     unreachable;
@@ -73,12 +81,12 @@ pub fn prettyPrint(val: anytype, indent: usize) void {
                 if (p.child == u8) {
                     std.debug.warn("\"{}\"", .{val});
                 } else {
-                    prettyPrint(@TypeOf(val), indent);
+                    pretty_print(@TypeOf(val), indent);
                     std.debug.warn("{{ ", .{});
                     for (val) |one| {
                         std.debug.warn("{}, ", .{one});
                     }
-                    warnIndent(indent);
+                    warn_indent(indent);
                     std.debug.warn("}}", .{});
                 }
             },
@@ -87,19 +95,19 @@ pub fn prettyPrint(val: anytype, indent: usize) void {
             },
         },
         .Array => |a| {
-            prettyPrint(@TypeOf(val), indent);
+            pretty_print(@TypeOf(val), indent);
             std.debug.warn("{{\n", .{});
             for (val) |one| {
-                warnIndent(indent + 1);
-                prettyPrint(one, indent);
+                warn_indent(indent + 1);
+                pretty_print(one, indent);
                 std.debug.warn(",\n", .{});
             }
-            warnIndent(indent);
+            warn_indent(indent);
             std.debug.warn("}}", .{});
         },
         .Struct => |s| {
             if (comptime std.mem.indexOf(u8, @typeName(@TypeOf(val)), "ArrayListAligned") != null) {
-                prettyPrint(val.items, indent);
+                pretty_print(val.items, indent);
             } else {
                 const name = @typeName(@TypeOf(val));
                 if (name[0] != '.') {
@@ -107,12 +115,12 @@ pub fn prettyPrint(val: anytype, indent: usize) void {
                 }
                 std.debug.warn("{{\n", .{});
                 inline for (s.fields) |field| {
-                    warnIndent(indent + 1);
+                    warn_indent(indent + 1);
                     std.debug.warn(".{} = ", .{field.name});
-                    prettyPrint(@field(val, field.name), indent + 1);
+                    pretty_print(@field(val, field.name), indent + 1);
                     std.debug.warn(",\n", .{});
                 }
-                warnIndent(indent);
+                warn_indent(indent);
                 std.debug.warn("}}", .{});
             }
         },
@@ -126,7 +134,7 @@ pub fn prettyPrint(val: anytype, indent: usize) void {
                 std.debug.warn(".{} = ", .{@tagName(@as(t, val))});
                 inline for (u.fields) |f| {
                     if (@enumToInt(@as(t, val)) == f.enum_field.?.value) {
-                        prettyPrint(@field(val, f.name), indent);
+                        pretty_print(@field(val, f.name), indent);
                     }
                 }
                 std.debug.warn(" }}", .{});
@@ -134,7 +142,7 @@ pub fn prettyPrint(val: anytype, indent: usize) void {
         },
         .Optional => {
             if (val) |v| {
-                prettyPrint(v, indent);
+                pretty_print(v, indent);
             } else {
                 std.debug.warn("null", .{});
             }
@@ -143,13 +151,13 @@ pub fn prettyPrint(val: anytype, indent: usize) void {
         .Fn => |f| {
             std.debug.warn("fn (", .{});
             inline for (f.args) |arg, i| {
-                prettyPrint(arg.arg_type, 0);
+                pretty_print(arg.arg_type, 0);
                 if (i != f.args.len - 1) {
                     std.debug.warn(", ", .{});
                 }
             }
             std.debug.warn(") ", .{});
-            prettyPrint(f.return_type, indent);
+            pretty_print(f.return_type, indent);
         },
         // TODO
         else => std.debug.warn("{}", .{val}),
