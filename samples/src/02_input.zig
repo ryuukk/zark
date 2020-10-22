@@ -9,12 +9,12 @@ var input_processor = InputProcessor {
     .key_typed = on_key_typed,
 };
 
-fn on_key_down(key: i32) bool {
+fn on_key_down(processor: *InputProcessor, key: i32) bool {
     std.log.info("on_key_down({})", .{key});
     return true;
 }
 
-fn on_key_typed(character: u8) bool {
+fn on_key_typed(processor: *InputProcessor, character: u8) bool {
     std.log.info("on_key_typed({c})", .{character});
     return true;
 }
