@@ -4,7 +4,7 @@ const Engine = zark.engine.Engine;
 const Config = zark.engine.Config;
 const InputProcessor = zark.input.InputProcessor;
 
-var input_processor = InputProcessor{
+var input_processor = InputProcessor {
     .key_down = on_key_down,
     .key_typed = on_key_typed,
 };

@@ -23,7 +23,7 @@ pub fn main() anyerror!void {
         .on_update = on_update,
         .on_render = on_render,
     };
-
+            
     if (!e.run())
         std.log.err("Engine failure", .{});
 
