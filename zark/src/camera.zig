@@ -47,7 +47,6 @@ pub const Camera = struct {
         const aspect: f32 = self.viewport_width / self.viewport_height;
         self.projection = Mat4.create_projection(math.abs(self.near), math.abs(self.far), self.fov, aspect);
 
-        // todo: i don't like &
         self.view = Mat4.create_look_at(&self.position, &Vec3.add(&self.position, &self.direction), &self.up);
     }
 
@@ -118,7 +117,6 @@ pub const CameraController = struct {
         }
         return self.strafe_left or self.strafe_right or self.forward or self.backward or self.up or self.down;
     }
-
     
     fn touch_dragged(ptr: *InputProcessor, x: i32, y: i32, pointer: i32) bool {
         var self = @fieldParentPtr(CameraController, "base", ptr);
@@ -137,55 +135,32 @@ pub const CameraController = struct {
         return true;
     }
 
-
     pub fn update(self: *Self, camera: *Camera, dt: f32) void {
 
         self.camera = camera;
 
         if (self.forward)
-        {
-            //camera.position += _camera.direction.nor() * (_velocity * dt);
             camera.position = camera.position.add( &camera.direction.nor().sclf(self.velocity * dt) );
-        }
 
         if (self.backward)
-        {
-            //_camera.position += _camera.direction.nor() * -(_velocity * dt);
             camera.position = camera.position.add( &camera.direction.nor().sclf( -(self.velocity * dt) ) );
-        }
 
         if (self.strafe_left)
-        {
-            //_camera.position += Vec3.cross(_camera.direction, _camera.up)
-            //    .nor() * -(_velocity * dt);
             camera.position = camera.position.add(  
                 &Vec3.cross(&camera.direction, &camera.up).nor().sclf( -(self.velocity * dt) ) 
             );
-        }
 
         if (self.strafe_right)
-        {
-            //_camera.position += Vec3.cross(_camera.direction, _camera.up)
-            //    .nor() * (_velocity * dt);
             camera.position = camera.position.add( 
                  &Vec3.cross(&camera.direction, &camera.up).nor().sclf( self.velocity * dt )  
             );
-        }
 
         if (self.up)
-        {
-            //_camera.position += _camera.up.nor() * (_velocity * dt);
             camera.position = camera.position.add( &camera.up.nor().sclf( self.velocity * dt ) );
-        }
 
         if (self.down)
-        {
-            //_camera.position += _camera.up.nor() * -(_velocity * dt);
             camera.position = camera.position.add( &camera.up.nor().sclf( -(self.velocity * dt) ) );
-        }
 
         camera.update();
-
-        std.log.info("Camera: {} {} - {} {} {} {}", .{camera.direction, camera.up, self.up, self.down, self.strafe_left, self.strafe_right});      
     }
 };
