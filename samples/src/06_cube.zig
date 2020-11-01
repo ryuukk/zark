@@ -14,7 +14,6 @@ const CameraController = zark.camera.CameraController;
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 
-var engine: Engine = undefined;
 var mesh: Mesh = undefined; 
 var program: ShaderProgram = undefined;
 var camera: Camera = undefined;
@@ -115,10 +114,10 @@ fn on_init(e: *Engine) void {
     
     
 }
-fn on_update(dt: f32) void {
+fn on_update(engine: *Engine, dt: f32) void {
 }
 
-fn on_render(dt: f32) void {
+fn on_render(engine: *Engine, dt: f32) void {
 
     //acc += dt;
 
@@ -144,18 +143,16 @@ fn on_render(dt: f32) void {
 
 pub fn main() anyerror!void {
     
-
-    
     var c = Config{ .window_title = "zark - sample: 06_cube" };
     
-    engine = Engine{
+    var e = Engine{
         .config = c,
         .on_init = on_init,
         .on_update = on_update,
         .on_render = on_render,
     };
 
-    if (!engine.run())
+    if (!e.run())
         std.log.err("Engine failure", .{});
 
     std.log.info("the end", .{});
