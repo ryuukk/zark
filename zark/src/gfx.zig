@@ -1,5 +1,6 @@
 const std = @import("std");
 const zark = @import("zark.zig");
+
 const glad = zark.gl;
 const glfw = zark.glfw;
 const engine = zark.engine;
@@ -48,7 +49,7 @@ pub const Gfx = struct {
 
     pub fn init(self: *Gfx, config: *engine.Config) bool {
         if (glfw.glfwInit() == 0) {
-            std.log.err("Unnable to init glfw", .{});
+            zark.ERROR("Unable to init glfw");
             return false;
         }
 
@@ -62,9 +63,8 @@ pub const Gfx = struct {
         glfw.glfwWindowHint(glfw.GLFW_SAMPLES, 0);
 
         // glfwCreateWindow(config.window_width, config.window_height, config.window_title.c_str(), NULL, NULL);
-        self.window_ptr = glfw.glfwCreateWindow(config.window_width, config.window_height, @ptrCast([*c]const u8, config.window_title), null, null) orelse
-            {
-            std.log.err("Unnable to create window", .{});
+        self.window_ptr = glfw.glfwCreateWindow(config.window_width, config.window_height, @ptrCast([*c]const u8, config.window_title), null, null) orelse {
+            zark.ERROR("Unable to create window");
             glfw.glfwTerminate();
             return false;
         };
@@ -92,11 +92,10 @@ pub const Gfx = struct {
 
         const gl = glad.gladLoadGLLoader(@ptrCast(fn ([*c]const u8) callconv(.C) ?*c_void, glfw.glfwGetProcAddress));
         if (gl == 0) {
-            std.log.err("Unnable to load glad", .{});
+            zark.ERROR("Unable to load glad");
             return false;
         }
-        std.log.info("GL: {}", .{gl});
-
+        
         // delay window opening to avoid positioning glitch and white window
         self.clear(0.0, 0.0, 0.0, 1.0);
         glfw.glfwSwapBuffers(self.window_ptr);
@@ -123,7 +122,7 @@ pub const Gfx = struct {
 
         self.gfx.update_backbuffer_info();
         self.gfx.viewport(0, 0, w, h);
-        //todo: resize event
+        //TODO: resize event
         glfw.glfwSwapBuffers(ptr);
 
         std.log.info("resize: {}:{}", .{ w, h });

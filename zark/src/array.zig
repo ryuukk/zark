@@ -30,15 +30,18 @@ pub fn FixedArray(comptime T: type, size: u32) type {
         pub fn slice(self: *Self) []T {
             return self.items[0..@intCast(usize, self.count)];
         }
+        
     };
 }
 
-pub fn Array(comptime T: type, initialCapacity: i32) type {
+
+pub fn Array(comptime T: type) type {
+
     var ret = struct {
         const Self = @This();
         allocator: *Allocator = undefined,
         items: []T = undefined,
-        capacity: u32 = initialCapacity,
+        capacity: u32 = 16,
         count: u32 = 0,
         version: u32 = 0,
 
@@ -46,6 +49,7 @@ pub fn Array(comptime T: type, initialCapacity: i32) type {
             self.allocator = alloc;
             self.items = alloc.alloc(T, self.capacity) catch @panic("can't allocate");
         }
+
         pub fn deinit(self: *Self) void {
             self.allocator.free(self.items);
         }

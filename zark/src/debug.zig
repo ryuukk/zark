@@ -1,12 +1,38 @@
 const std = @import("std");
 
+pub fn ASSERT(condition: bool, msg: []const u8) void {
+    @setCold(true);
 
-pub fn info(msg: []const u8) void {
+    if(!condition) {
+        @panic(msg);
+    }
+}
+
+pub fn INFO(comptime msg: []const u8) void {
     std.log.info(msg, .{});
 }
-pub fn infof(comptime format: []const u8, args: anytype) void {
+
+pub fn INFOf(comptime format: []const u8, args: anytype) void {
     std.log.info(format, args);
 }
+
+pub fn WARN(comptime msg: []const u8) void {
+    std.log.warn(msg, .{});
+}
+
+pub fn WARNf(comptime format: []const u8, args: anytype) void {
+    std.log.warn(format, args);
+}
+
+pub fn ERROR(comptime msg: []const u8) void {
+    std.log.err(msg, .{});
+}
+
+pub fn ERRORf(comptime format: []const u8, args: anytype) void {
+    std.log.err(format, args);
+}
+
+
 
 pub fn warn_indent(indent: usize) void {
     var i: usize = 0;

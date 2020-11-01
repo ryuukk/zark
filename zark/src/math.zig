@@ -5,7 +5,7 @@ pub const PI2: f32 = PI * 2;
 
 pub inline fn f_mod(a: f32, b: f32) f32 {
     return @mod(a, b);
-    //return std.math.mod(f32, a, b); // todo: double check
+    //return std.math.mod(f32, a, b); // TODO: double check
 }
 
 pub inline fn sign(value: f32) i32 {
@@ -16,15 +16,15 @@ pub inline fn sqrt(value: f32) f32 {
     return std.math.sqrt(value);
 }
 
-pub inline fn abs(value: f32) f32 {
+pub inline fn abs(value: anytype) @TypeOf(value) {
     return std.math.fabs(value);
 }
 
-pub inline fn sin(rad: f32) f32 {
+pub inline fn sin(rad: anytype) @TypeOf(rad) {
     return std.math.sin(rad);
 }
 
-pub inline fn cos(rad: f32) f32 {
+pub inline fn cos(rad: anytype) @TypeOf(rad) {
     return std.math.cos(rad);
 }
 
@@ -32,7 +32,7 @@ pub inline fn atan2(y: f32, x: f32) f32 {
     return std.math.atan2(f32, y, x);
 }
 
-pub inline fn tan(x: f32) f32 {
+pub inline fn tan(x: anytype) @TypeOf(x) {
     return std.math.tan(x);
 }
 
@@ -43,6 +43,10 @@ pub inline fn max(a: anytype, b: anytype) @TypeOf(a, b) {
 pub const Vec2 = struct {
     x: f32 = 0.0,
     y: f32 = 0.0,
+
+    pub fn set(x: f32, y: f32) Vec2 {
+        return .{.x = x, .y = y};
+    }
 };
 
 pub const Vec3 = struct {
@@ -135,10 +139,11 @@ pub const Vec3 = struct {
         };
     }
 
-    pub fn len(x: f32, y: f32, z: f32) f32 {
+    pub inline fn len(x: f32, y: f32, z: f32) f32 {
         return sqrt(x * x + y * y + z * z);
     }
-    pub fn len3(self: *Vec3) f32 {
+
+    pub inline fn len3(self: *Vec3) f32 {
         return sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
     }
     
@@ -154,8 +159,9 @@ pub const Vec3 = struct {
     pub fn rotate(lhs: *const Vec3, axis: *const Vec3, angle: f32) Vec3{
         const rotation = Quat.from_axis(axis, angle);
         const matrix = Mat4.set(
-            Vec3.set(0, 0, 0),
-            Quat.set(rotation.x, rotation.y, rotation.z, rotation.w), Vec3.set(1,1,1)
+            &Vec3.set(0, 0, 0),
+            &Quat.set(rotation.x, rotation.y, rotation.z, rotation.w), 
+            &Vec3.set(1,1,1)
         );
 
         return transform(lhs, &matrix);
@@ -191,7 +197,7 @@ test "vec3.other" {
     const dt = 0.16;
 
 
-    _ = a.add( b.nor().sclf(velocity * dt) );
+    _ = a.add( &b.nor().sclf(velocity * dt) );
 }
 
 pub const Quat = struct {
@@ -200,11 +206,15 @@ pub const Quat = struct {
     z: f32 = 0.0,
     w: f32 = 1.0,
 
-    pub fn set(x: f32, y: f32, z: f32, w: f32) Quat {
+    pub inline fn identity() Quat {
+        return .{.x = 0, .y = 0, .z = 0, .w = 1.0};
+    }
+
+    pub inline fn set(x: f32, y: f32, z: f32, w: f32) Quat {
         return .{.x = x, .y = y, .w = w};
     }
 
-    pub fn normalize(self: *Quat) void {
+    pub inline fn normalize(self: *Quat) void {
         const invMagnitude: f32 = 1.0 / sqrt(self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w);
         self.x *= invMagnitude;
         self.y *= invMagnitude;
@@ -212,10 +222,10 @@ pub const Quat = struct {
         self.w *= invMagnitude;
     }
 
-    pub fn from_axis(axis: *const Vec3, rad: f32) Quat {
+    pub inline fn from_axis(axis: *const Vec3, rad: f32) Quat {
         return from_axisf(axis.x, axis.y, axis.z, rad);
     }
-    pub fn from_axisf(x: f32, y: f32, z: f32, rad: f32) Quat {
+    pub inline fn from_axisf(x: f32, y: f32, z: f32, rad: f32) Quat {
         var d = Vec3.len(x, y, z);
 
         if (d == 0.0) return Quat{};
@@ -256,8 +266,28 @@ pub const Mat4 = struct {
     m23: f32 = 0.0,
     m33: f32 = 1.0,
 
+    pub inline fn identity() Mat4 {
+        return .{
+            .m00 = 1.0,
+            .m10 = 0.0,
+            .m20 = 0.0,
+            .m30 = 0.0,
+            .m01 = 0.0,
+            .m11 = 1.0,
+            .m21 = 0.0,
+            .m31 = 0.0,
+            .m02 = 0.0,
+            .m12 = 0.0,
+            .m22 = 1.0,
+            .m32 = 0.0,
+            .m03 = 0.0,
+            .m13 = 0.0,
+            .m23 = 0.0,
+            .m33 = 1.0,
+        };
+    }
 
-    pub fn set(translation: Vec3, rotation: Quat, scale: Vec3) Mat4 {
+    pub inline fn set(translation: *const Vec3, rotation: *const Quat, scale: *const Vec3) Mat4 {
         const xs = rotation.x * 2.0;
         const ys = rotation.y * 2.0;
         const zs = rotation.z * 2.0;
@@ -294,7 +324,7 @@ pub const Mat4 = struct {
         return ret;
     }
 
-    pub fn create_translation(position: *const Vec3) Mat4 {
+    pub inline fn create_translation(position: *const Vec3) Mat4 {
         var ret = Mat4{};
         ret.m03 = position.x;
         ret.m13 = position.y;
@@ -302,7 +332,7 @@ pub const Mat4 = struct {
         return ret;
     }
 
-    pub fn create_projection(near: f32, far: f32, fov: f32, aspect_ratio: f32) Mat4 {
+    pub inline fn create_projection(near: f32, far: f32, fov: f32, aspect_ratio: f32) Mat4 {
         var ret = Mat4{};
 
         //const l_fd: f32 = @divFloor(1.0, tan(@divFloor((fov * (@divFloor(PI, 180))), 2.0)));
@@ -332,7 +362,7 @@ pub const Mat4 = struct {
         return ret;
     }
 
-    pub fn create_look_at(position: *const Vec3, target: *const Vec3, up: *const Vec3) Mat4 {
+    pub inline fn create_look_at(position: *const Vec3, target: *const Vec3, up: *const Vec3) Mat4 {
         var tmp = target.sub(position);
 
         var ret = create_look_at2(&tmp, up).scl(&create_translation(&position.sclf(-1)));
@@ -340,7 +370,7 @@ pub const Mat4 = struct {
         return ret;
     }
 
-    pub fn create_look_at2(direction: *const Vec3, up: *const Vec3) Mat4 {
+    pub inline fn create_look_at2(direction: *const Vec3, up: *const Vec3) Mat4 {
         var l_vez = direction.nor();
         var l_vex = direction.nor();
 
@@ -361,7 +391,7 @@ pub const Mat4 = struct {
         return ret;
     }
 
-    pub fn create(translation: Vec3, rotation: Quat, scale: Vec3) Mat4 {
+    pub inline fn create(translation: Vec3, rotation: Quat, scale: Vec3) Mat4 {
         const xs: f32 = rotation.x * 2.0;
         const ys: f32 = rotation.y * 2.0;
         const zs: f32 = rotation.z * 2.0;
@@ -398,7 +428,7 @@ pub const Mat4 = struct {
         return ret;
     }
 
-    pub fn scl(self: *const Mat4, rhs: *const Mat4) Mat4 {
+    pub inline fn scl(self: *const Mat4, rhs: *const Mat4) Mat4 {
         return .{
                     .m00 = self.m00 * rhs.m00 + self.m01 * rhs.m10 + self.m02 * rhs.m20 + self.m03 * rhs.m30,
                     .m10 = self.m10 * rhs.m00 + self.m11 * rhs.m10 + self.m12 * rhs.m20 + self.m13 * rhs.m30,

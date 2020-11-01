@@ -7,8 +7,6 @@ const time = zark.time;
 const array = zark.array;
 const math = zark.math;
 
-
-
 const KEY_DOWN: i32 = 0;
 const KEY_UP: i32 = 1;
 const KEY_TYPED: i32 = 2;
@@ -461,17 +459,16 @@ fn character_for_key_code(key: i32) u8 {
 }
 
 fn convert_glfw_button(button: c_int) i8 {
-    
-    if (button == glfw.GLFW_MOUSE_BUTTON_LEFT) return 0;//Buttons.LEFT;
-    if (button == glfw.GLFW_MOUSE_BUTTON_RIGHT) return 1;//Buttons.RIGHT;
-    if (button == glfw.GLFW_MOUSE_BUTTON_MIDDLE) return 2;//Buttons.MIDDLE;
-    return -1;//Buttons::UKNOWN;
+    if (button == glfw.GLFW_MOUSE_BUTTON_LEFT) return 0; //Buttons.LEFT;
+    if (button == glfw.GLFW_MOUSE_BUTTON_RIGHT) return 1; //Buttons.RIGHT;
+    if (button == glfw.GLFW_MOUSE_BUTTON_MIDDLE) return 2; //Buttons.MIDDLE;
+    return -1; //Buttons::UKNOWN;
 }
 
 const EventQueue = struct {
     processor: ?*InputProcessor = null,
-    queue: [64]InputEvent = undefined,
-    processing_queue: [64]InputEvent = undefined,
+    queue: [32]InputEvent = undefined,
+    processing_queue: [32]InputEvent = undefined,
     current_event_time: i64 = 0,
 
     queue_C: i32 = 0,
@@ -501,39 +498,36 @@ const EventQueue = struct {
 
             switch (e.event_type) {
                 KEY_DOWN => {
-                    if(processor.key_down) |cb|
-                    _ = cb(processor, e.event.key_down.key);
+                    if (processor.key_down) |cb|
+                        _ = cb(processor, e.event.key_down.key);
                 },
                 KEY_UP => {
-                    if(processor.key_up) |cb|
-                    _ = cb(processor, e.event.key_up.key);
+                    if (processor.key_up) |cb|
+                        _ = cb(processor, e.event.key_up.key);
                 },
                 KEY_TYPED => {
-                    if(processor.key_typed) |cb|
-                     _ = cb(processor, e.event.key_typed.character);
+                    if (processor.key_typed) |cb|
+                        _ = cb(processor, e.event.key_typed.character);
                 },
                 TOUCH_UP => {
-                    if(processor.touch_up) |cb|
-                     _ = cb(processor, e.event.touch_up.screen_x, e.event.touch_up.screen_y,
-                      e.event.touch_up.pointer, e.event.touch_up.button);
+                    if (processor.touch_up) |cb|
+                        _ = cb(processor, e.event.touch_up.screen_x, e.event.touch_up.screen_y, e.event.touch_up.pointer, e.event.touch_up.button);
                 },
                 TOUCH_DOWN => {
-                    if(processor.touch_down) |cb|
-                     _ = cb(processor, e.event.touch_down.screen_x, e.event.touch_down.screen_y,
-                      e.event.touch_down.pointer, e.event.touch_down.button);
+                    if (processor.touch_down) |cb|
+                        _ = cb(processor, e.event.touch_down.screen_x, e.event.touch_down.screen_y, e.event.touch_down.pointer, e.event.touch_down.button);
                 },
                 MOUSE_MOVED => {
-                    if(processor.mouse_moved) |cb|
-                     _ = cb(processor, e.event.touch_moved.screen_x, e.event.touch_moved.screen_y);
+                    if (processor.mouse_moved) |cb|
+                        _ = cb(processor, e.event.touch_moved.screen_x, e.event.touch_moved.screen_y);
                 },
                 TOUCH_DRAGGED => {
-                    if(processor.touch_dragged) |cb|
-                     _ = cb(processor, e.event.touch_dragged.screen_x, e.event.touch_dragged.screen_y,
-                      e.event.touch_dragged.pointer);
+                    if (processor.touch_dragged) |cb|
+                        _ = cb(processor, e.event.touch_dragged.screen_x, e.event.touch_dragged.screen_y, e.event.touch_dragged.pointer);
                 },
                 SCROLLED => {
-                    if(processor.scrolled) |cb|
-                     _ = cb(processor, e.event.scrolled.amount);
+                    if (processor.scrolled) |cb|
+                        _ = cb(processor, e.event.scrolled.amount);
                 },
                 else => {},
             }
@@ -692,6 +686,7 @@ pub const InputProcessor = struct {
 };
 
 pub const Input = struct {
+    window_ptr: ?*glfw.GLFWwindow = null,
     processor: ?*InputProcessor = null,
     event_queue: EventQueue = EventQueue{},
     mouse_x: i32 = 0,
@@ -708,6 +703,7 @@ pub const Input = struct {
     logical_mouse_y: i32 = 0,
 
     pub fn init(self: *Input, window: ?*glfw.GLFWwindow) void {
+        self.window_ptr = window;
         _ = glfw.glfwSetKeyCallback(window, on_key_cb);
         _ = glfw.glfwSetCharCallback(window, on_char_cb);
         _ = glfw.glfwSetScrollCallback(window, on_scroll_cb);
@@ -760,12 +756,11 @@ pub const Input = struct {
         var self = &e.input;
         _ = self.event_queue.scrolled(-math.sign(@floatCast(f32, ypos)));
     }
-    
+
     fn on_cursor_pos_cb(ptr: ?*glfw.GLFWwindow, xpos: f64, ypos: f64) callconv(.C) void {
         var e: *engine.Engine = @ptrCast(*engine.Engine, @alignCast(@alignOf(*engine.Engine), glfw.glfwGetWindowUserPointer(ptr)));
         var self = &e.input;
 
-        
         self.delta_x = (@floatToInt(i32, xpos) - self.logical_mouse_x);
         self.delta_y = (@floatToInt(i32, ypos) - self.logical_mouse_y);
         self.mouse_x = (@floatToInt(i32, xpos));
@@ -773,8 +768,7 @@ pub const Input = struct {
         self.logical_mouse_x = self.mouse_x;
         self.logical_mouse_y = self.mouse_y;
 
-        if (e.gfx.hdpi_mode == .PIXELS)
-        {
+        if (e.gfx.hdpi_mode == .PIXELS) {
             const xScale = @intToFloat(f32, e.gfx.back_buffer_width) / @intToFloat(f32, e.gfx.logical_width);
             const yScale = @intToFloat(f32, e.gfx.back_buffer_height) / @intToFloat(f32, e.gfx.logical_height);
             self.delta_x = @floatToInt(i32, @intToFloat(f32, self.delta_x) * xScale);
@@ -784,24 +778,21 @@ pub const Input = struct {
         }
 
         //gfx.requestRendering();
-        if (self.mouse_pressed > 0)
-        {
+        if (self.mouse_pressed > 0) {
             _ = self.event_queue.touch_dragged(self.mouse_x, self.mouse_y, 0);
-        }
-        else
-        {
+        } else {
             _ = self.event_queue.mouse_moved(self.mouse_x, self.mouse_y);
         }
     }
-    
+
     fn on_mouse_button_cb(ptr: ?*glfw.GLFWwindow, button: c_int, state: c_int, mods: c_int) callconv(.C) void {
         var e: *engine.Engine = @ptrCast(*engine.Engine, @alignCast(@alignOf(*engine.Engine), glfw.glfwGetWindowUserPointer(ptr)));
         var self = &e.input;
 
         var b = convert_glfw_button(button);
-        if(b == -1) return;
+        if (b == -1) return;
 
-        if(state == glfw.GLFW_PRESS) {
+        if (state == glfw.GLFW_PRESS) {
             self.mouse_pressed += 1;
             self.just_touched = true;
             _ = self.event_queue.touch_down(self.mouse_x, self.mouse_y, 0, b);
@@ -844,17 +835,324 @@ pub const Input = struct {
         self.delta_x = 0;
         self.delta_y = 0;
     }
+
+    pub fn is_key_just_pressed(self: *Input, key: Keys) bool {
+        if (key == Keys.ANY_KEY) return self.key_just_pressed;
+        const index = @intCast(usize, @enumToInt(key));
+        return self.just_pressed_keys[index];
+    }
+
+    pub fn is_key_pressed(self: *Input, key: Keys) bool {
+        if (key == Keys.ANY_KEY) return self.pressed_keys > 0;
+        if (key == Keys.SYM) {
+            var ret = glfw.glfwGetKey(self.window_ptr, glfw.GLFW_KEY_LEFT_SUPER);
+
+            if(ret == glfw.GLFW_FALSE)
+                ret = glfw.glfwGetKey(self.window_ptr, glfw.GLFW_KEY_RIGHT_SUPER);
+
+            return if(ret == glfw.GLFW_TRUE) true else false;
+        }
+
+        const ret = glfw.glfwGetKey(self.window_ptr, get_glfw_key_code_enum(key));
+        return if(ret == glfw.GLFW_TRUE) true else false;
+    }
 };
 
-
+fn get_glfw_key_code(keycode: i32) c_int {
+    return get_glfw_key_code_enum(@intToEnum(Keys, keycode));
+}
+fn get_glfw_key_code_enum(keycode: Keys) c_int {
+    switch (keycode) {
+        Keys.SPACE => {
+            return glfw.GLFW_KEY_SPACE;
+        },
+        Keys.APOSTROPHE => {
+            return glfw.GLFW_KEY_APOSTROPHE;
+        },
+        Keys.COMMA => {
+            return glfw.GLFW_KEY_COMMA;
+        },
+        Keys.PERIOD => {
+            return glfw.GLFW_KEY_PERIOD;
+        },
+        Keys.NUM_0 => {
+            return glfw.GLFW_KEY_0;
+        },
+        Keys.NUM_1 => {
+            return glfw.GLFW_KEY_1;
+        },
+        Keys.NUM_2 => {
+            return glfw.GLFW_KEY_2;
+        },
+        Keys.NUM_3 => {
+            return glfw.GLFW_KEY_3;
+        },
+        Keys.NUM_4 => {
+            return glfw.GLFW_KEY_4;
+        },
+        Keys.NUM_5 => {
+            return glfw.GLFW_KEY_5;
+        },
+        Keys.NUM_6 => {
+            return glfw.GLFW_KEY_6;
+        },
+        Keys.NUM_7 => {
+            return glfw.GLFW_KEY_7;
+        },
+        Keys.NUM_8 => {
+            return glfw.GLFW_KEY_8;
+        },
+        Keys.NUM_9 => {
+            return glfw.GLFW_KEY_9;
+        },
+        Keys.SEMICOLON => {
+            return glfw.GLFW_KEY_SEMICOLON;
+        },
+        Keys.EQUALS => {
+            return glfw.GLFW_KEY_EQUAL;
+        },
+        Keys.A => {
+            return glfw.GLFW_KEY_A;
+        },
+        Keys.B => {
+            return glfw.GLFW_KEY_B;
+        },
+        Keys.C => {
+            return glfw.GLFW_KEY_C;
+        },
+        Keys.D => {
+            return glfw.GLFW_KEY_D;
+        },
+        Keys.E => {
+            return glfw.GLFW_KEY_E;
+        },
+        Keys.F => {
+            return glfw.GLFW_KEY_F;
+        },
+        Keys.G => {
+            return glfw.GLFW_KEY_G;
+        },
+        Keys.H => {
+            return glfw.GLFW_KEY_H;
+        },
+        Keys.I => {
+            return glfw.GLFW_KEY_I;
+        },
+        Keys.J => {
+            return glfw.GLFW_KEY_J;
+        },
+        Keys.K => {
+            return glfw.GLFW_KEY_K;
+        },
+        Keys.L => {
+            return glfw.GLFW_KEY_L;
+        },
+        Keys.M => {
+            return glfw.GLFW_KEY_M;
+        },
+        Keys.N => {
+            return glfw.GLFW_KEY_N;
+        },
+        Keys.O => {
+            return glfw.GLFW_KEY_O;
+        },
+        Keys.P => {
+            return glfw.GLFW_KEY_P;
+        },
+        Keys.Q => {
+            return glfw.GLFW_KEY_Q;
+        },
+        Keys.R => {
+            return glfw.GLFW_KEY_R;
+        },
+        Keys.S => {
+            return glfw.GLFW_KEY_S;
+        },
+        Keys.T => {
+            return glfw.GLFW_KEY_T;
+        },
+        Keys.U => {
+            return glfw.GLFW_KEY_U;
+        },
+        Keys.V => {
+            return glfw.GLFW_KEY_V;
+        },
+        Keys.W => {
+            return glfw.GLFW_KEY_W;
+        },
+        Keys.X => {
+            return glfw.GLFW_KEY_X;
+        },
+        Keys.Y => {
+            return glfw.GLFW_KEY_Y;
+        },
+        Keys.Z => {
+            return glfw.GLFW_KEY_Z;
+        },
+        Keys.LEFT_BRACKET => {
+            return glfw.GLFW_KEY_LEFT_BRACKET;
+        },
+        Keys.BACKSLASH => {
+            return glfw.GLFW_KEY_BACKSLASH;
+        },
+        Keys.RIGHT_BRACKET => {
+            return glfw.GLFW_KEY_RIGHT_BRACKET;
+        },
+        Keys.GRAVE => {
+            return glfw.GLFW_KEY_GRAVE_ACCENT;
+        },
+        Keys.ESCAPE => {
+            return glfw.GLFW_KEY_ESCAPE;
+        },
+        Keys.ENTER => {
+            return glfw.GLFW_KEY_ENTER;
+        },
+        Keys.TAB => {
+            return glfw.GLFW_KEY_TAB;
+        },
+        Keys.BACKSPACE => {
+            return glfw.GLFW_KEY_BACKSPACE;
+        },
+        Keys.INSERT => {
+            return glfw.GLFW_KEY_INSERT;
+        },
+        Keys.FORWARD_DEL => {
+            return glfw.GLFW_KEY_DELETE;
+        },
+        Keys.RIGHT => {
+            return glfw.GLFW_KEY_RIGHT;
+        },
+        Keys.LEFT => {
+            return glfw.GLFW_KEY_LEFT;
+        },
+        Keys.DOWN => {
+            return glfw.GLFW_KEY_DOWN;
+        },
+        Keys.UP => {
+            return glfw.GLFW_KEY_UP;
+        },
+        Keys.PAGE_UP => {
+            return glfw.GLFW_KEY_PAGE_UP;
+        },
+        Keys.PAGE_DOWN => {
+            return glfw.GLFW_KEY_PAGE_DOWN;
+        },
+        Keys.HOME => {
+            return glfw.GLFW_KEY_HOME;
+        },
+        Keys.END => {
+            return glfw.GLFW_KEY_END;
+        },
+        Keys.F1 => {
+            return glfw.GLFW_KEY_F1;
+        },
+        Keys.F2 => {
+            return glfw.GLFW_KEY_F2;
+        },
+        Keys.F3 => {
+            return glfw.GLFW_KEY_F3;
+        },
+        Keys.F4 => {
+            return glfw.GLFW_KEY_F4;
+        },
+        Keys.F5 => {
+            return glfw.GLFW_KEY_F5;
+        },
+        Keys.F6 => {
+            return glfw.GLFW_KEY_F6;
+        },
+        Keys.F7 => {
+            return glfw.GLFW_KEY_F7;
+        },
+        Keys.F8 => {
+            return glfw.GLFW_KEY_F8;
+        },
+        Keys.F9 => {
+            return glfw.GLFW_KEY_F9;
+        },
+        Keys.F10 => {
+            return glfw.GLFW_KEY_F10;
+        },
+        Keys.F11 => {
+            return glfw.GLFW_KEY_F11;
+        },
+        Keys.F12 => {
+            return glfw.GLFW_KEY_F12;
+        },
+        Keys.NUMPAD_0 => {
+            return glfw.GLFW_KEY_KP_0;
+        },
+        Keys.NUMPAD_1 => {
+            return glfw.GLFW_KEY_KP_1;
+        },
+        Keys.NUMPAD_2 => {
+            return glfw.GLFW_KEY_KP_2;
+        },
+        Keys.NUMPAD_3 => {
+            return glfw.GLFW_KEY_KP_3;
+        },
+        Keys.NUMPAD_4 => {
+            return glfw.GLFW_KEY_KP_4;
+        },
+        Keys.NUMPAD_5 => {
+            return glfw.GLFW_KEY_KP_5;
+        },
+        Keys.NUMPAD_6 => {
+            return glfw.GLFW_KEY_KP_6;
+        },
+        Keys.NUMPAD_7 => {
+            return glfw.GLFW_KEY_KP_7;
+        },
+        Keys.NUMPAD_8 => {
+            return glfw.GLFW_KEY_KP_8;
+        },
+        Keys.NUMPAD_9 => {
+            return glfw.GLFW_KEY_KP_9;
+        },
+        Keys.SLASH => {
+            return glfw.GLFW_KEY_KP_DIVIDE;
+        },
+        Keys.STAR => {
+            return glfw.GLFW_KEY_KP_MULTIPLY;
+        },
+        Keys.MINUS => {
+            return glfw.GLFW_KEY_KP_SUBTRACT;
+        },
+        Keys.PLUS => {
+            return glfw.GLFW_KEY_KP_ADD;
+        },
+        Keys.SHIFT_LEFT => {
+            return glfw.GLFW_KEY_LEFT_SHIFT;
+        },
+        Keys.CONTROL_LEFT => {
+            return glfw.GLFW_KEY_LEFT_CONTROL;
+        },
+        Keys.ALT_LEFT => {
+            return glfw.GLFW_KEY_LEFT_ALT;
+        },
+        Keys.SYM => {
+            return glfw.GLFW_KEY_LEFT_SUPER;
+        },
+        Keys.SHIFT_RIGHT => {
+            return glfw.GLFW_KEY_RIGHT_SHIFT;
+        },
+        Keys.CONTROL_RIGHT => {
+            return glfw.GLFW_KEY_RIGHT_CONTROL;
+        },
+        Keys.ALT_RIGHT => {
+            return glfw.GLFW_KEY_RIGHT_ALT;
+        },
+        Keys.MENU => {
+            return glfw.GLFW_KEY_MENU;
+        },
+        else => {
+            return @intCast(c_int, 0);
+        },
+    }
+}
 
 pub const Buttons = enum(i8) {
-    UKNOWN = -1,
-    LEFT = 0,
-    RIGHT = 1,
-    MIDDLE = 2,
-    BACK = 3,
-    FORWARD = 4
+    UKNOWN = -1, LEFT = 0, RIGHT = 1, MIDDLE = 2, BACK = 3, FORWARD = 4
 };
 
 pub const Keys = enum(i32) {

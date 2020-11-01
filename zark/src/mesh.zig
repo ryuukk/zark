@@ -1,3 +1,7 @@
+// TODO:make fixed size buffers for mesh, it doesn't need dynamic array AT ALL, since size is known already
+// but how can i do it correctly?
+
+
 const std = @import("std");
 const zark = @import("zark.zig");
 
@@ -54,13 +58,25 @@ pub const VertexAttribute = struct {
             ._usage_index = number_of_trailing_zeros(POSITION),
         };
     }
+
     pub fn normal() VertexAttribute {
         return VertexAttribute{
             .usage = POSITION,
             .num_components = 3,
             .aliass = "a_normal",
             .gl_type = glad.GL_FLOAT,
-            ._usage_index = number_of_trailing_zeros(POSITION),
+            ._usage_index = number_of_trailing_zeros(NORMAL),
+        };
+    }
+
+    pub fn tex_coords0() VertexAttribute {
+        return VertexAttribute{
+            .usage = TEXTURECOORDINATES,
+            .num_components = 2,
+            .aliass = "a_texCoord0",
+            .gl_type = glad.GL_FLOAT,
+            .unit = 0,
+            ._usage_index = number_of_trailing_zeros(TEXTURECOORDINATES),
         };
     }
 
@@ -94,7 +110,7 @@ pub const VertexAttributes = struct {
     mask: u64 = 0,
     count: u8 = 0,
 
-    // todo: should consider this maybe? sometimes it coult be dynamic, so allocate an array
+    // TODO: should consider this maybe? sometimes it coult be dynamic, so allocate an array
     pub fn init(alloc: ?*std.mem.Allocator) VertexAttributes {
         @panic("unimplemented");
     }
@@ -206,7 +222,7 @@ pub const IndexBuffer = struct {
         }
     }
 
-    // todo: this considers it's always full
+    // TODO: this considers it's always full
     pub fn get_num_indices(self: *IndexBuffer) u32 {
         return if (self.empty) 0 else @intCast(u32, self.buffer.len);
     }
@@ -287,7 +303,7 @@ pub const VertexBuffer = struct {
             program.enable_vert_attr(loc);
             program.set_vert_attr(loc, attr.num_components, attr.gl_type, attr.normalized, self.attributes.vertex_size, attr.offset);
         }
-        // todo: finish implementing caching
+        // TODO: finish implementing caching
         //if(self.cache_valid) {
         //    if(locations == null) {
         //        var i: i32 = 0;
@@ -334,7 +350,7 @@ pub const VertexBuffer = struct {
     }
 
     
-    // todo: this considers it's always full
+    // TODO: this considers it's always full
     pub fn get_num_vertices(self: *VertexBuffer) u32 {
         return @intCast(u32, self.vertices.len / @intCast(u32,(@divFloor(self.attributes.vertex_size, 4))));
     }
@@ -373,7 +389,7 @@ pub const Mesh = struct {
         );
     }
 
-    // todo: finish
+    // TODO: finish
     pub fn set_vertices(self: *Mesh, data: []const f32) void {
         self.vertex_buffer.set_data(data, 0, data.len);
     }
@@ -381,16 +397,16 @@ pub const Mesh = struct {
         self.index_buffer.set_data(data, 0, data.len);
     }
     
-    pub fn render_full(self: *Mesh, program: *ShaderProgram, ptype: PrimitiveType, offset: i32, count: u32, autoBind: bool) void {
+    pub fn render_full(self: *Mesh, program: *ShaderProgram, ptype: PrimitiveType, offset: usize, count: usize, autoBind: bool) void {
         if(autoBind) 
             self.bind(program, null);
 
 
         if(self.index_buffer.get_num_indices() > 0) {
             var orr = offset * 4;
-            glad.glDrawElements(@enumToInt(ptype), @intCast(c_int, count), glad.GL_UNSIGNED_INT, @intToPtr(?*const c_void, @intCast(usize, orr)));
+            glad.glDrawElements(@enumToInt(ptype), @intCast(c_int, count), glad.GL_UNSIGNED_INT, @intToPtr(?*const c_void, orr));
         } else {
-            glad.glDrawArrays(@enumToInt(ptype), offset, @intCast(c_int, count));
+            glad.glDrawArrays(@enumToInt(ptype), @intCast(c_int, offset), @intCast(c_int, count));
         }
 
         if(autoBind) {

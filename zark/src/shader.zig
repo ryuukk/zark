@@ -58,7 +58,7 @@ pub const ShaderProgram = struct {
     fn fetch_attributes(self: *ShaderProgram) void {
         var numAttributes: c_int = 0;
         glad.glGetProgramiv(self.program, glad.GL_ACTIVE_ATTRIBUTES, &numAttributes);
-        std.log.info("Attributes: {}", .{numAttributes});
+        //zark.INFOf("Attributes: {}", .{numAttributes});
         self.attributes = self.alloc.alloc(ShaderLoc, @intCast(usize, numAttributes)) catch @panic("unable to alloc");
 
         var i: u8 = 0;
@@ -88,7 +88,7 @@ pub const ShaderProgram = struct {
                 .name = name,
             };
 
-            std.log.info("Attribute: loc: {} struct: {}", .{ location, self.attributes[i] });
+            //zark.INFOf("Attribute: loc: {} struct: {}", .{ location, self.attributes[i] });
 
             numAttributes -= 1;
             i += 1;
@@ -98,7 +98,7 @@ pub const ShaderProgram = struct {
     fn fetch_uniforms(self: *ShaderProgram) void {
         var numAttributes: c_int = 0;
         glad.glGetProgramiv(self.program, glad.GL_ACTIVE_UNIFORMS, &numAttributes);
-        std.log.info("Uniforms: {}", .{numAttributes});
+        //zark.INFOf("Uniforms: {}", .{numAttributes});
         self.uniforms = self.alloc.alloc(ShaderLoc, @intCast(usize, numAttributes)) catch @panic("unable to alloc");
 
         var i: u8 = 0;
@@ -128,7 +128,7 @@ pub const ShaderProgram = struct {
                 .name = name,
             };
 
-            std.log.info("Uniform: loc: {} struct: {}", .{ location, self.uniforms[i] });
+            //zark.INFOf("Uniform: loc: {} struct: {}", .{ location, self.uniforms[i] });
 
             numAttributes -= 1;
             i += 1;
@@ -195,7 +195,7 @@ pub const ShaderProgram = struct {
         var linked: c_int = 0;
         glad.glGetProgramiv(program, glad.GL_LINK_STATUS, &linked);
         if (linked == 0) {
-            // todo: log
+            // TODO: log
             std.debug.panic("Unnable to link program", .{});
         }
         return program;
@@ -206,6 +206,7 @@ pub const ShaderProgram = struct {
             @panic("not implementad");
         }
     }
+    
     pub fn bind(self: *ShaderProgram) void {
         self.check_managed();
 
@@ -217,7 +218,8 @@ pub const ShaderProgram = struct {
             if (array.equals(u8, loc.name, alias)) return loc.location;
         }
 
-        @panic("i don't know what to do here yet");
+        //zark.ERRORf("Attribute not found: {}", .{alias});
+        @panic("i don't know what to do here yet ");
     }
 
     pub fn enable_vert_attr(self: *ShaderProgram, location: i32) void {
@@ -259,7 +261,7 @@ pub const ShaderProgram = struct {
 
     pub fn set_uniform_mat4(self: *ShaderProgram, name: []const u8, value: *const math.Mat4) void {
         self.check_managed();
-        var location = self.fetch_uniform_location(name, true); // todo: change once static pedantic bool added
+        var location = self.fetch_uniform_location(name, true); // TODO: change once static pedantic bool added
 
         glad.glUniformMatrix4fv(location, 1, 0, &value.m00);
     }
