@@ -6,11 +6,11 @@ const Config = zark.engine.Config;
 fn on_init(engine: *Engine) void {
     std.log.info("on_init", .{});
 }
-fn on_update(dt: f32) void {
+fn on_update(engine: *Engine, dt: f32) void {
     std.log.info("on_update({})", .{dt});
 }
 
-fn on_render(dt: f32) void {
+fn on_render(engine: *Engine, dt: f32) void {
     std.log.info("on_render({})", .{dt});
 }
 
