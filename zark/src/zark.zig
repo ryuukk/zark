@@ -31,3 +31,5 @@ pub fn nothing() void {}
 pub fn empty(comptime T: type) []T {
     return &[_]T{};
 }
+
+pub const string = @import("string.zig");
