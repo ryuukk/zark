@@ -7,11 +7,12 @@ pub fn build(b: *Builder) !void {
     
     const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
-
+    
     try create_exe(b, target, mode, "hello", "src/01_hello.zig");
     try create_exe(b, target, mode, "input", "src/02_input.zig");
     try create_exe(b, target, mode, "triangle", "src/03_triangle.zig");
-    try create_exe(b, target, mode, "cube", "src/05_cube.zig");
+    try create_exe(b, target, mode, "cube", "src/06_cube.zig");
+    try create_exe(b, target, mode, "model", "src/07_model.zig");
 }
 
 

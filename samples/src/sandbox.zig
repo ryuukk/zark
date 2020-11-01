@@ -20,7 +20,7 @@ const Entity = struct {
 
 const Player = struct {
     base: Entity = .{ .kind = .Player, .tick = tick },
-    name: [] const u8,
+    name: []const u8,
 
     fn tick(e: *Entity, dt: f32) bool {
         const self: *Player = @fieldParentPtr(Player, "base", e);
@@ -33,15 +33,51 @@ const Player = struct {
 fn tick(e: *Entity) void {
     if (!e.tick(e, 0))
         std.log.info("remove", .{});
-    
-    if(e.kind == .Player) {
+
+    if (e.kind == .Player) {
         var player = @ptrCast(*Player, e);
         std.log.info("{}", .{player.name});
     }
 }
+const Node = struct {
+    id: []const u8,
+    parent: ?*Node = null,
+    child: []Node = [],
+};
+
+const Data = struct {
+    id: i32,
+};
 
 pub fn main() anyerror!void {
-    var p = Player{ .name = "Me" };
 
-    tick(&p.base);
+
+    
+
+    var ar = std.ArrayList(Node).init(std.testing.allocator);
+
+    for(ar.items) |m| {
+    }
+
+
+    var something = true;
+    var a = Node{ .id = "a" };
+    var b = Node{ .id = "b", .parent = &a };
+
+    
+    if (something) {
+        if (b.parent) |p| {
+            std.log.info("{} {}", .{ b.id, p.id });
+        }
+    }
+
+    // vs
+
+    if (something and b.parent != null) {
+        std.log.info("{} {}", .{ b.id, b.parent.?.id });
+    }
+
+    var e = Player {.kind = .Player, .name = "yo"};
+    tick(&e.base);
 }
+

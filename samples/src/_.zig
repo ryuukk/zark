@@ -1,0 +1,6 @@
+const std = @import("std");
+
+var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+
+pub fn main() !void {
+}

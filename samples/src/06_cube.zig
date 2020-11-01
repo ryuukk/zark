@@ -61,6 +61,8 @@ fn on_init(e: *Engine) void {
     camera = Camera.init_perspective(67, 1280, 720);
     controller = CameraController.init(e);
 
+    
+
     e.input.processor = &controller.base;
 
     var attr = VertexAttributes{};
@@ -144,7 +146,7 @@ pub fn main() anyerror!void {
     
 
     
-    var c = Config{ .window_title = "zark - sample: 05_cube" };
+    var c = Config{ .window_title = "zark - sample: 06_cube" };
     
     engine = Engine{
         .config = c,
