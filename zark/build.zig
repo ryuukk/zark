@@ -8,7 +8,7 @@ pub fn build(b: *Builder) void {
     const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
 
-    // todo: is this file needed?
+    // TODO: is this file needed?
 }
 
 fn create_exe(b: *Builder, target: std.build.Target, mode: std.builtin.Mode,
