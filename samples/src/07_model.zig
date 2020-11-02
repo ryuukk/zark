@@ -119,19 +119,15 @@ fn on_render(e: *Engine, dt: f32) void {
         Vec3{.x = 1.0, .y = 1.0, .z = 1.0}
     );
 
-    program.set_uniform_mat4("u_world", &world);
-    for(model.mesh_parts) |part| {
-        var p = part;
-        p.render(&program, true);   
-    }
-   //for(model.nodes) |node| {
-   //    var transform = world.scl(&node.global_transform);
-   //    program.set_uniform_mat4("u_world", &transform);
+   for(model.nodes) |node| {
+       // TODO: this seems wrong
+       var transform = world.scl(&node.global_transform);
+       program.set_uniform_mat4("u_world", &world);
 
-   //    for(node.parts) |part| {
-   //        part.mesh_part.render(&program, true);
-   //    }
-   //}
+       for(node.parts) |part| {
+           part.mesh_part.render(&program, true);
+       }
+   }
 }
 
 pub fn main() anyerror!void {
