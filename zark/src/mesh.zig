@@ -80,6 +80,49 @@ pub const VertexAttribute = struct {
         };
     }
 
+    pub fn blend_weight0() VertexAttribute {
+        return VertexAttribute{
+            .usage = BONEWEIGHT,
+            .num_components = 2,
+            .aliass = "a_boneWeight0",
+            .gl_type = glad.GL_FLOAT,
+            .unit = 0,
+            ._usage_index = number_of_trailing_zeros(BONEWEIGHT),
+        };
+    }
+
+    pub fn blend_weight1() VertexAttribute {
+        return VertexAttribute{
+            .usage = BONEWEIGHT,
+            .num_components = 2,
+            .aliass = "a_boneWeight1",
+            .gl_type = glad.GL_FLOAT,
+            .unit = 1,
+            ._usage_index = number_of_trailing_zeros(BONEWEIGHT),
+        };
+    }
+
+    pub fn blend_weight2() VertexAttribute {
+        return VertexAttribute{
+            .usage = BONEWEIGHT,
+            .num_components = 2,
+            .aliass = "a_boneWeight2",
+            .gl_type = glad.GL_FLOAT,
+            .unit = 2,
+            ._usage_index = number_of_trailing_zeros(BONEWEIGHT),
+        };
+    }
+    pub fn blend_weight3() VertexAttribute {
+        return VertexAttribute{
+            .usage = BONEWEIGHT,
+            .num_components = 2,
+            .aliass = "a_boneWeight3",
+            .gl_type = glad.GL_FLOAT,
+            .unit = 3,
+            ._usage_index = number_of_trailing_zeros(BONEWEIGHT),
+        };
+    }
+
     pub fn get_size_bytes(self: *VertexAttribute) i32 {
         switch (self.gl_type) {
             glad.GL_FLOAT => {
@@ -299,6 +342,7 @@ pub const VertexBuffer = struct {
         while (i < numAttributes) : (i += 1) {
             var attr = &self.attributes.attributes[i];
             var loc = program.get_attrib_loc(attr.aliass);
+            if(loc < 0) continue;
 
             program.enable_vert_attr(loc);
             program.set_vert_attr(loc, attr.num_components, attr.gl_type, attr.normalized, self.attributes.vertex_size, attr.offset);

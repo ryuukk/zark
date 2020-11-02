@@ -217,9 +217,9 @@ pub const ShaderProgram = struct {
         for (self.attributes) |loc| {
             if (array.equals(u8, loc.name, alias)) return loc.location;
         }
-
+        return -1;
         //zark.ERRORf("Attribute not found: {}", .{alias});
-        @panic("i don't know what to do here yet ");
+        //@panic("i don't know what to do here yet ");
     }
 
     pub fn enable_vert_attr(self: *ShaderProgram, location: i32) void {

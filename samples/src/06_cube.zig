@@ -126,6 +126,9 @@ fn on_render(engine: *Engine, dt: f32) void {
     engine.gfx.clear(0.2, 0.2, 0.2, 1.0);
     engine.gfx.enable_depth_test();    
 
+
+    //zark.gl.glPolygonMode(zark.gl.GL_FRONT_AND_BACK, zark.gl.GL_LINE );
+
     camera.update();
     program.bind();
     program.set_uniform_mat4("u_proj", &camera.projection);

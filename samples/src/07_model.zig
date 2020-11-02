@@ -54,15 +54,15 @@ var fs =
 \\in vec4 v_color;
 \\in vec2 v_texCoord;
 \\
-\\//uniform sampler2D u_texture;
+\\uniform sampler2D u_texture;
 \\
 \\out vec4 f_color;
 \\
 \\void main()
 \\{
-\\    //vec3 color = texture(u_texture, v_texCoord).rgb;
-\\    //f_color = vec4(color, 1.0) * v_color;
-\\    f_color = v_color;
+\\    vec3 color = texture(u_texture, v_texCoord).rgb;
+\\    f_color = vec4(color, 1.0) * v_color;
+\\    //f_color = v_color;
 \\}
 ;
 
@@ -96,12 +96,18 @@ fn on_update(e: *Engine, dt: f32) void {
 
 fn on_render(e: *Engine, dt: f32) void {
 
-    //acc += dt;
+    acc += dt;
 
     controller.update(&camera, dt);
 
-    engine.gfx.clear(0.2, 0.2, 0.2, 1.0);
-    engine.gfx.enable_depth_test();    
+    //engine.gfx.clear(0.2, 0.2, 0.2, 1.0);
+    //engine.gfx.enable_depth_test(); 
+
+    zark.gl.glClear(zark.gl.GL_COLOR_BUFFER_BIT | zark.gl.GL_DEPTH_BUFFER_BIT);
+    zark.gl.glClearColor(0.2, 0.2, 0.2, 1.0);  
+    
+    zark.gl.glEnable(zark.gl.GL_DEPTH_TEST);
+    zark.gl.glPolygonMode(zark.gl.GL_FRONT_AND_BACK, zark.gl.GL_LINE );
 
     camera.update();
     program.bind();
@@ -113,14 +119,19 @@ fn on_render(e: *Engine, dt: f32) void {
         Vec3{.x = 1.0, .y = 1.0, .z = 1.0}
     );
 
-    for(model.nodes) |node| {
-        var transform = world.scl(&node.global_transform);
-        program.set_uniform_mat4("u_world", &world);
-
-        for(node.parts) |part| {
-            part.mesh_part.render(&program, true);
-        }
+    program.set_uniform_mat4("u_world", &world);
+    for(model.mesh_parts) |part| {
+        var p = part;
+        p.render(&program, true);   
     }
+   //for(model.nodes) |node| {
+   //    var transform = world.scl(&node.global_transform);
+   //    program.set_uniform_mat4("u_world", &transform);
+
+   //    for(node.parts) |part| {
+   //        part.mesh_part.render(&program, true);
+   //    }
+   //}
 }
 
 pub fn main() anyerror!void {

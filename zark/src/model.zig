@@ -21,7 +21,7 @@ pub const Model = struct {
     materials: []Material = &[_]Material{},
     nodes: []*Node = &[_]*Node{},
     animations: []Animation = &[_]Animation{},
-    meshes: []Mesh = &[_]Mesh{},
+    meshes: []*Mesh = &[_]*Mesh{},
     mesh_parts: []MeshPart = &[_]MeshPart{},
 
     pub fn init(allocator: *std.mem.Allocator, data: *ModelData) !Model {
@@ -47,7 +47,7 @@ pub const Model = struct {
     }
 
     fn load_meshes(self: *Model, meshes: []ModelMesh) !void {
-        self.meshes = try self.a.allocator.alloc(Mesh, meshes.len);
+        self.meshes = try self.a.allocator.alloc(*Mesh, meshes.len);
         for(meshes) |m, i| {
             try self.convert_mesh(&m, i);
         }
@@ -61,8 +61,8 @@ pub const Model = struct {
 
         var hasIndices = numIndices > 0;
         var numVertices: usize = @divFloor(modelMesh.vertices.len, ( @intCast(usize, @divFloor(modelMesh.attributes.vertex_size, 4))));
-        var mesh = Mesh.init(&self.a.allocator, modelMesh.attributes, true, numVertices, numIndices);
-        self.meshes[index] = mesh;
+        var mesh = try self.a.allocator.create(Mesh);        
+        mesh.* = Mesh.init(&self.a.allocator, modelMesh.attributes, true, numVertices, numIndices);
 
         mesh.set_vertices(modelMesh.vertices);
 
@@ -80,7 +80,12 @@ pub const Model = struct {
             part.primitive_type = p.primitive_type;
             part.offset = offset;
             part.size = if(hasIndices) p.indices.len else numVertices;
-            part.mesh = &mesh;
+            part.mesh = mesh;
+            if(hasIndices) {
+                std.mem.copy(i32, indices.?[offset .. offset + p.indices.len], p.indices);
+            }
+
+
             self.mesh_parts[i] = part;
         }
 
@@ -88,6 +93,8 @@ pub const Model = struct {
             mesh.set_indices(indices.?);
             self.a.allocator.free(indices.?);
         }
+        
+        self.meshes[index] = mesh;
     }
 
     fn load_nodes(self: *Model, nodes: []ModelNode) !void {
@@ -150,9 +157,13 @@ pub const Model = struct {
         return node;
     }
 
-    fn load_animations(self: *Model, animations: []ModelAnimation) !void {}
+    fn load_animations(self: *Model, animations: []ModelAnimation) !void {
+        // TODO: load animations
+    }
 
-    fn load_materials(self: *Model, materials: []ModelMaterial) !void {}
+    fn load_materials(self: *Model, materials: []ModelMaterial) !void {
+        // TODO: load materials
+    }
 
     pub fn calculate_transforms(self: *Model) void {
         for(self.nodes) |n| {

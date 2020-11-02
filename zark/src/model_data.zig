@@ -115,6 +115,14 @@ pub const ModelData = struct {
                 va.add(VertexAttribute.normal());
             } else if(equals(u8, value, "TEXCOORD0")) {
                 va.add(VertexAttribute.tex_coords0());
+            } else if(equals(u8, value, "BLENDWEIGHT0")) {
+                va.add(VertexAttribute.blend_weight0());
+            } else if(equals(u8, value, "BLENDWEIGHT1")) {
+                va.add(VertexAttribute.blend_weight1());
+            } else if(equals(u8, value, "BLENDWEIGHT2")) {
+                va.add(VertexAttribute.blend_weight2());
+            } else if(equals(u8, value, "BLENDWEIGHT3")) {
+                va.add(VertexAttribute.blend_weight3());
             }
         }
         data.attributes = va;

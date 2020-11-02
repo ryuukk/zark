@@ -136,8 +136,8 @@ pub const Gfx = struct {
 
 
     pub fn clear(self: *Gfx, r: f32, g: f32, b: f32, a: f32) void {
-        glad.glClearColor(r, g, b, a);
         glad.glClear(glad.GL_COLOR_BUFFER_BIT | glad.GL_DEPTH_BUFFER_BIT);
+        glad.glClearColor(r, g, b, a);
     }
 
     pub fn viewport(self: *Gfx, x: i32, y: i32, w: i32, h: i32) void {
