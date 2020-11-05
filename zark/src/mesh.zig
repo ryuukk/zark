@@ -58,6 +58,26 @@ pub const VertexAttribute = struct {
             ._usage_index = number_of_trailing_zeros(POSITION),
         };
     }
+    
+    pub fn position2D() VertexAttribute {
+        return VertexAttribute{
+            .usage = POSITION,
+            .num_components = 2,
+            .aliass = "a_position",
+            .gl_type = glad.GL_FLOAT,
+            ._usage_index = number_of_trailing_zeros(POSITION),
+        };
+    }
+    pub fn color_packed() VertexAttribute {
+        return VertexAttribute{
+            .usage = COLORPACKED,
+            .num_components = 4,
+            .aliass = "a_color",
+            .gl_type = glad.GL_UNSIGNED_BYTE,
+            .normalized = true,
+            ._usage_index = number_of_trailing_zeros(COLORPACKED),
+        };
+    }
 
     pub fn normal() VertexAttribute {
         return VertexAttribute{

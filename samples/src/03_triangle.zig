@@ -65,6 +65,9 @@ fn on_update(engine: *Engine, dt: f32) void {
 fn on_render(engine: *Engine, dt: f32) void {
     std.log.info("on_render({})", .{dt});
 
+    zark.gl.glClear(zark.gl.GL_COLOR_BUFFER_BIT | zark.gl.GL_DEPTH_BUFFER_BIT);
+    zark.gl.glClearColor(0.2, 0.2, 0.2, 1.0);  
+    
     program.bind();
     mesh.render(&program, PrimitiveType.TRIANGLE);
 }

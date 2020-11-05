@@ -265,4 +265,14 @@ pub const ShaderProgram = struct {
 
         glad.glUniformMatrix4fv(location, 1, 0, &value.m00);
     }
+
+    pub fn set_uniform_i(self: *ShaderProgram, name: []const u8, value: i32) void {
+        self.check_managed();
+        var location = self.fetch_uniform_location(name, true); // TODO: change once static pedantic bool added
+
+        glad.glUniform1i(location, @intCast(c_int, value));
+    }
+
+
+
 };

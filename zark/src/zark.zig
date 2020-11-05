@@ -16,13 +16,16 @@ pub const camera = @import("camera.zig");
 pub const node = @import("node.zig");
 pub const model = @import("model.zig");
 pub const model_data = @import("model_data.zig");
+pub const texture = @import("texture.zig");
 
 
+pub const SpriteBatch = @import("spritebatch.zig").SpriteBatch;
 
 
 // c stuff
 pub const gl = @import("c/glad.zig");
 pub const glfw = @import("c/glfw.zig");
+pub const stb = @import("c/stb.zig");
 
 
 pub fn nothing() void {}

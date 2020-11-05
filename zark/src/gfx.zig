@@ -63,7 +63,7 @@ pub const Gfx = struct {
         glfw.glfwWindowHint(glfw.GLFW_SAMPLES, 0);
 
         // glfwCreateWindow(config.window_width, config.window_height, config.window_title.c_str(), NULL, NULL);
-        self.window_ptr = glfw.glfwCreateWindow(config.window_width, config.window_height, @ptrCast([*c]const u8, config.window_title), null, null) orelse {
+        self.window_ptr = glfw.glfwCreateWindow(config.window_width, config.window_height, config.window_title.ptr, null, null) orelse {
             zark.ERROR("Unable to create window");
             glfw.glfwTerminate();
             return false;
@@ -146,5 +146,20 @@ pub const Gfx = struct {
 
     pub fn enable_depth_test(self: *Gfx) void {
         glad.glEnable(glad.GL_DEPTH_TEST);
+    }
+
+    pub fn get_width(self: *Gfx) f32 {
+        if (self.hdpi_mode == .PIXELS) {
+            return @intToFloat(f32, self.back_buffer_width);
+        } else {
+            return @intToFloat(f32, self.logical_width);
+        }
+    }
+    pub fn get_height(self: *Gfx) f32 {
+        if (self.hdpi_mode == .PIXELS) {
+            return @intToFloat(f32, self.back_buffer_height);
+        } else {
+            return @intToFloat(f32, self.logical_height);
+        }
     }
 };

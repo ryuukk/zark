@@ -24,7 +24,20 @@ pub const Camera = struct {
 
     perspective: bool = true,
     fov: f32 = 67,
+    zoom: f32 = 1.0,
 
+    pub fn init_ortho(w: f32, h: f32) Camera {
+        return . {
+            .perspective = false,
+            .viewport_width = w,
+            .viewport_height = h,
+            .near = 0.0,
+            .up = Vec3.set(0, 1, 0),
+            .direction = Vec3.set(0, 0, -1),
+            .position = Vec3.set(w * 0.5, h * 0.5, 0),
+        };
+    }
+    
     pub fn init_perspective(fov: f32, w: f32, h: f32) Camera {
         return .{
             .perspective = true,
@@ -50,7 +63,19 @@ pub const Camera = struct {
         self.view = Mat4.create_look_at(&self.position, &Vec3.add(&self.position, &self.direction), &self.up);
     }
 
-    fn update_orthographic(self: *Camera) void {}
+    fn update_orthographic(self: *Camera) void {
+        self.projection = Mat4.create_orthographic(
+            self.zoom * -self.viewport_width * 0.5,
+            self.zoom * (self.viewport_width * 0.5),
+            self.zoom * -(self.viewport_height * 0.5),
+            self.zoom * self.viewport_height * 0.5,
+            self.near, self.far
+        );
+
+        self.view = Mat4.create_look_at(&self.position, &Vec3.add(&self.position, &self.direction), &self.up);
+
+        self.combined = Mat4.scl(&self.projection, &self.view);
+    }
 };
 
 

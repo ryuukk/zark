@@ -362,6 +362,37 @@ pub const Mat4 = struct {
         return ret;
     }
 
+    pub inline fn create_orthographic(left: f32, right: f32, bottom: f32, top: f32, nearr: f32, farr: f32) Mat4 {
+        var ret = Mat4.identity();
+
+        var x_orth = 2 / (right - left);
+        var y_orth = 2 / (top - bottom);
+        var z_orth = -2 / (farr - nearr);
+
+        var tx = -(right + left) / (right - left);
+        var ty = -(top + bottom) / (top - bottom);
+        var tz = -(farr + nearr) / (farr - nearr);
+
+        ret.m00 = x_orth;
+        ret.m10 = 0;
+        ret.m20 = 0;
+        ret.m30 = 0;
+        ret.m01 = 0;
+        ret.m11 = y_orth;
+        ret.m21 = 0;
+        ret.m31 = 0;
+        ret.m02 = 0;
+        ret.m12 = 0;
+        ret.m22 = z_orth;
+        ret.m32 = 0;
+        ret.m03 = tx;
+        ret.m13 = ty;
+        ret.m23 = tz;
+        ret.m33 = 1;
+
+        return ret;
+    }
+
     pub inline fn create_look_at(position: *const Vec3, target: *const Vec3, up: *const Vec3) Mat4 {
         var tmp = target.sub(position);
 
@@ -455,9 +486,54 @@ pub const Mat4 = struct {
     }
 };
 
+const Stuff = union {
+    f: f32,
+    u: u32,
+};
+
 pub const Color = struct {
     r: f32 = 0.0,
     g: f32 = 0.0,
     b: f32 = 0.0,
     a: f32 = 0.0,
+
+    pub inline fn from_rgba(value: u32) Color {
+        return .{
+            .r = @divFloor( @intToFloat(f32, ((value & 0xff000000) >> 24) ) , 255.0),
+            .g = @divFloor( @intToFloat(f32, ((value & 0x00ff0000) >> 16) ) , 255.0),
+            .b = @divFloor( @intToFloat(f32, ((value & 0x0000ff00) >> 8) )  , 255.0),
+            .a = @divFloor( @intToFloat(f32, ((value & 0x000000ff) >> 0) )  , 255.0),
+        };
+    }
+
+    pub inline fn WHITE() Color {
+        return from_rgba(0xFFFFFFFF);
+    }
+    
+    pub inline fn BLACK() Color {
+        return from_rgba(0x000000FF);
+    }
+    
+    pub inline fn RED() Color {
+        return from_rgba(0xFF0000FF);
+    }
+    
+    pub inline fn GREEN() Color {
+        return from_rgba(0x00FF00FF);
+    }
+    
+    pub inline fn BLUE() Color {
+        return from_rgba(0x0000FFFF);
+    }
+
+    pub fn to_float_bits(self: *Color) f32 {
+        var color: u32 =
+            ( @floatToInt(u32, (self.a * 255) ) << 24) |
+            ( @floatToInt(u32, (self.b * 255) ) << 16) |
+            ( @floatToInt(u32, (self.g * 255) ) << 8 ) |
+            ( @floatToInt(u32, (self.r * 255) )      )
+            ;
+
+        return @bitCast(f32, color);
+    }
 };
