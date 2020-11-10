@@ -1,0 +1,3 @@
+*.zig linguist-vendored
+*.h linguist-vendored=false
+*.c linguist-vendored=false
