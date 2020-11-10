@@ -8,6 +8,14 @@ pub fn ASSERT(condition: bool, msg: []const u8) void {
     }
 }
 
+pub fn ASSERTf(condition: bool, comptime format: []const u8, args: anytype) void {
+    @setCold(true);
+
+    if(!condition) {
+        std.debug.panic(format, args);
+    }
+}
+
 pub fn INFO(comptime msg: []const u8) void {
     std.log.info(msg, .{});
 }
@@ -32,6 +40,9 @@ pub fn ERRORf(comptime format: []const u8, args: anytype) void {
     std.log.err(format, args);
 }
 
+pub fn PANICf(comptime format: []const u8, args: anytype) void {
+    std.debug.panic(format, args);
+}
 
 
 pub fn warn_indent(indent: usize) void {

@@ -218,14 +218,12 @@ pub const Model = struct {
 
                     animation.node_animations[j] = na;
                 } else {
-                    zark.ERRORf("Can't find node: {}", .{jna.node_id});
-                    @panic("fuck this stupid code");
+                    zark.PANICf("Can't find node: {}", .{jna.node_id});
                 }
             }
 
             if(animation.node_animations.len == 0) {
-                zark.ERRORf("Animation has no node animations: {}", .{janim.id});
-                @panic("fuck you");
+                zark.PANICf("Animation: {} has no node animations", .{janim.id});
             }
             self.animations[i] = animation;
         }

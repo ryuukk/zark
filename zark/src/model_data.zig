@@ -123,8 +123,7 @@ pub const ModelData = struct {
             } else if(equals(u8, value, "BLENDWEIGHT3")) {
                 va.add(VertexAttribute.blend_weight3());
             } else {
-                zark.ERRORf("Vertex Attribute: {} not supported", .{value});
-                @panic("Vertex Attribute not supported");
+                zark.PANICf("Vertex Attribute: {} not supported", .{value});
             }
         }
         data.attributes = va;
@@ -158,8 +157,7 @@ pub const ModelData = struct {
             data.primitive_type = zark.gl.PrimitiveType.TRIANGLE;
             return;
         }
-        zark.ERRORf("Primitive Type: {} not supported", .{str});
-        @panic("Primitive Type not supported");
+        zark.PANICf("Primitive Type: {} not supported", .{str});
     }
 
     pub fn parse_indices(self: *ModelData, data: *ModelMeshPart, array: *json.Array) !void {
