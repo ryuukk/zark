@@ -41,8 +41,7 @@ pub const Model = struct {
     }
 
     pub fn deinit(self: *Model) !void {
-        // todo: i should cleanup mesh properly
-        // since i am using an arena allocator, opengl stuff won't be deleted
+        // TODO: i should cleanup mesh properly
         self.a.deinit();
     }
 
@@ -99,6 +98,9 @@ pub const Model = struct {
 
     fn load_nodes(self: *Model, nodes: []ModelNode) !void {
         self.bones.clearAndFree();
+
+        if(nodes.len == 0) return;
+
         self.nodes = try self.a.allocator.alloc(*Node, nodes.len);
         for(nodes) |*node, i| {
             self.nodes[i] = try self.load_node(node);
@@ -159,6 +161,74 @@ pub const Model = struct {
 
     fn load_animations(self: *Model, animations: []ModelAnimation) !void {
         // TODO: load animations
+        if(animations.len == 0) return;
+
+        self.animations = try self.a.allocator.alloc(Animation, animations.len);
+        for(animations) |janim, i| {
+            var animation = Animation{
+                .id = try self.a.allocator.dupe(u8, janim.id),
+            };
+            animation.node_animations = try self.a.allocator.alloc(NodeAnimation, janim.node_animations.len);
+
+            for(janim.node_animations) |jna, j| {
+                
+                if(get_node_recursive(self.nodes, jna.node_id)) |node| {
+                    var na = NodeAnimation{
+                        .node = node,
+                    };
+
+                    if(jna.translation.len > 0) {
+                        na.translation = try self.a.allocator.alloc(NodeKeyframe(Vec3), jna.translation.len);
+                        for(jna.translation) |kf, k| {
+                            if(kf.keytime > animation.duration) 
+                                animation.duration = kf.keytime;
+
+                            na.translation[k] = NodeKeyframe(Vec3) {
+                                .keytime = kf.keytime,
+                                .value = kf.value,
+                            };
+                        }
+                    }
+
+                    if(jna.rotation.len > 0) {
+                        na.rotation = try self.a.allocator.alloc(NodeKeyframe(Quat), jna.rotation.len);
+                        for(jna.rotation) |kf, k| {
+                            if(kf.keytime > animation.duration) 
+                                animation.duration = kf.keytime;
+
+                            na.rotation[k] = NodeKeyframe(Quat) {
+                                .keytime = kf.keytime,
+                                .value = kf.value,
+                            };
+                        }
+                    }
+
+                    if(jna.scaling.len > 0) {
+                        na.scaling = try self.a.allocator.alloc(NodeKeyframe(Vec3), jna.scaling.len);
+                        for(jna.scaling) |kf, k| {
+                            if(kf.keytime > animation.duration) 
+                                animation.duration = kf.keytime;
+
+                            na.scaling[k] = NodeKeyframe(Vec3) {
+                                .keytime = kf.keytime,
+                                .value = kf.value,
+                            };
+                        }
+                    }
+
+                    animation.node_animations[j] = na;
+                } else {
+                    zark.ERRORf("Can't find node: {}", .{jna.node_id});
+                    @panic("fuck this stupid code");
+                }
+            }
+
+            if(animation.node_animations.len == 0) {
+                zark.ERRORf("Animation has no node animations: {}", .{janim.id});
+                @panic("fuck you");
+            }
+            self.animations[i] = animation;
+        }
     }
 
     fn load_materials(self: *Model, materials: []ModelMaterial) !void {
@@ -172,6 +242,21 @@ pub const Model = struct {
          for(self.nodes) |n| {
             n.calculate_bone_transforms(true);
         }
+    }
+
+
+    fn get_node_recursive(nodes: []*Node, id: []const u8) ?*Node {
+        for(nodes) |node| {
+            if(std.mem.eql(u8, node.id, id)) return node;
+        }
+
+        for(nodes) |node| {
+            var ret = get_node_recursive(node.children.items, id);
+            if(ret != null) 
+                return ret;
+        }
+
+        return null;
     }
 };
 
@@ -193,12 +278,63 @@ pub const Material = struct {
 };
 
 pub const Animation = struct {
-
+    id: [] const u8,
+    duration: f32 = 0.0,
+    node_animations: []NodeAnimation = &[_]NodeAnimation{},
+};
+pub const NodeAnimation = struct {
+    node: *Node,
+    translation: []NodeKeyframe(Vec3) = &[_]NodeKeyframe(Vec3){},
+    rotation: []NodeKeyframe(Quat) = &[_]NodeKeyframe(Quat){},
+    scaling: []NodeKeyframe(Vec3) = &[_]NodeKeyframe(Vec3){},
 };
 
+pub fn NodeKeyframe(comptime T: type) type {
+    return struct {
+        keytime: f32 = 0,
+        value: T = undefined,
+    };
+}
+
+
 pub const ModelInstance = struct {
+    a: std.heap.ArenaAllocator,
+    model: *Model,
+    materials: []Material = &[_]Material{},
+    nodes: []*Node = &[_]*Node{},
+    animations: []Animation = &[_]Animation{},
+    transform: Mat4 = Mat4.identity(),
+
+    pub fn init(model: *Model, allocator: *std.mem.Allocator) ModelInstance {
+        var ret = ModelInstance {
+            .a = std.heap.ArenaAllocator.init(allocator),
+            .model = model,
+        };
+        ret.copy_nodes(model);
+        ret.invalidate();
+        ret.copy_animations(model);
+        ret.calculate_transforms();
+        return ret;
+    }
 
     pub fn deinit(self: *ModelInstance) !void {
+        self.a.deinit();
+    }
 
+    pub fn copy_nodes(self: *ModelInstance, model: *Model) void {
+
+    }
+    pub fn copy_animations(self: *ModelInstance, model: *Model) void {
+    }
+
+    pub fn copy_animation(self: *ModelInstance, animation: *Animation, shareKF: bool) void {
+    }
+
+    pub fn invalidate(self: *ModelInstance) void {
+        
+    }
+
+    pub fn calculate_transforms(self: *ModelInstance) void {
+        
     }
 };

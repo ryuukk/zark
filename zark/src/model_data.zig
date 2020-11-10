@@ -104,7 +104,6 @@ pub const ModelData = struct {
     }
     
     pub fn parse_attribuces(self: *ModelData, data: *ModelMesh, array: *json.Array) void {
-        // TODO: add supprt for other types
         var va = VertexAttributes{};
         for(array.items) |a| {
             var vi: u8 = 0;
@@ -123,6 +122,9 @@ pub const ModelData = struct {
                 va.add(VertexAttribute.blend_weight2());
             } else if(equals(u8, value, "BLENDWEIGHT3")) {
                 va.add(VertexAttribute.blend_weight3());
+            } else {
+                zark.ERRORf("Vertex Attribute: {} not supported", .{value});
+                @panic("Vertex Attribute not supported");
             }
         }
         data.attributes = va;
@@ -137,12 +139,9 @@ pub const ModelData = struct {
     pub fn parse_meshe_parts(self: *ModelData, data: *ModelMesh, array: *json.Array) !void {
         data.parts = try self.a.allocator.alloc(ModelMeshPart, array.items.len);
 
-        
         for(array.items) |mp, i| {
             var jsonpart = ModelMeshPart{};
             jsonpart.id = try self.a.allocator.dupe(u8, mp.Object.get("id").?.String);
-            zark.INFOf("PART: {} {}", .{i, jsonpart.id});
-
 
             var pt = mp.Object.get("type").?.String;
             self.parse_type(&jsonpart, pt);
@@ -159,9 +158,8 @@ pub const ModelData = struct {
             data.primitive_type = zark.gl.PrimitiveType.TRIANGLE;
             return;
         }
-
-        zark.ERRORf("Not supported {}", .{str});
-        @panic("");
+        zark.ERRORf("Primitive Type: {} not supported", .{str});
+        @panic("Primitive Type not supported");
     }
 
     pub fn parse_indices(self: *ModelData, data: *ModelMeshPart, array: *json.Array) !void {
@@ -193,6 +191,23 @@ pub const ModelData = struct {
             jnode.mesh_id = "";
         }
 
+        if(jvalue.Object.get("translation")) |*translation| {
+            jnode.translation = parse_vec3(translation);
+        } else {
+            jnode.translation = Vec3.set(0,0,0);
+        }
+        if(jvalue.Object.get("scale")) |*scale| {
+            jnode.scale = parse_vec3(scale);
+        } else {
+            jnode.scale = Vec3.set(1,1,1);
+        }
+        if(jvalue.Object.get("rotation")) |*rotation| {
+            jnode.rotation = parse_quat(rotation);
+            
+        } else {
+            jnode.rotation = Quat.identity();
+        }
+
         if(jvalue.Object.get("parts")) |parts| {
             jnode.parts = try allocator.alloc(ModelNodePart, parts.Array.items.len);
             for(parts.Array.items) |p, i| {
@@ -203,8 +218,29 @@ pub const ModelData = struct {
 
                 if(p.Object.get("bones")) |bones| {
                     jpart.bones = try allocator.alloc(Bone, bones.Array.items.len);
-                    for(bones.Array.items) |bone| {
-                        // TODO: parse bones
+                    for(bones.Array.items) |bone, j| {
+                        var node_id = try self.a.allocator.dupe(u8, bone.Object.get("node").?.String);
+
+                        var t: Vec3 = undefined;
+                        var s: Vec3 = undefined;
+                        var r: Quat = undefined;
+
+                        if(bone.Object.get("translation")) |*it| {
+                            t = parse_vec3(it);
+                        } else {
+                            t = Vec3.set(0,0,0);
+                        }
+                        if(bone.Object.get("scale")) |*it| {
+                            s = parse_vec3(it);
+                        } else {
+                            s = Vec3.set(1,1,1);
+                        }
+                        if(bone.Object.get("rotation")) |*it| {
+                            r = parse_quat(it);
+                        } else {
+                            r = Quat.identity();
+                        }
+                        jpart.bones[j] = Bone{.id = node_id, .mt = Mat4.set(&t, &r, &s)}; 
                     }
                 }
                 jnode.parts[i] = jpart;
@@ -272,22 +308,117 @@ pub const ModelData = struct {
     
     pub fn parse_animations(self: *ModelData, tree: *json.ValueTree) !void {
         // TODO: parse animations
+        if(tree.root.Object.get("animations")) |animations| {
+            self.animations = try self.a.allocator.alloc(ModelAnimation, animations.Array.items.len);
+            for(animations.Array.items) |animation, i| {
+                var bones = animation.Object.get("bones").?.Array;
+
+                var janim = ModelAnimation{};
+                janim.id = try self.a.allocator.dupe(u8, animation.Object.get("id").?.String);
+                janim.node_animations = try self.a.allocator.alloc(ModelNodeAnimation, bones.items.len);
+
+                for(bones.items) |bone, j| {
+                    var jna = ModelNodeAnimation{
+                        .node_id = try self.a.allocator.dupe(u8, bone.Object.get("boneId").?.String)
+                    };
+
+                    var keyframes = bone.Object.get("keyframes").?.Array;
+                    
+                    var translation_count: usize = 0;
+                    var rotation_count: usize = 0;
+                    var scaling_count: usize = 0;
+                    var translation_i: usize = 0;
+                    var rotation_i: usize = 0;
+                    var scaling_i: usize = 0;
+
+                    // TODO: should we really do that, dynamic array is annoying, so no choice
+                    {
+                        for(keyframes.items) |keyframe, k| {
+                            if(keyframe.Object.contains("translation")) {
+                                translation_count += 1;
+                            }
+                            if(keyframe.Object.contains("rotation")) {
+                                rotation_count += 1;
+                            }
+                            if(keyframe.Object.contains("scale")) {
+                                scaling_count += 1;
+                            }
+                        }
+
+                        if(translation_count > 0)
+                            jna.translation = try self.a.allocator.alloc(ModelNodeKeyframe(Vec3), translation_count);
+
+                        if(rotation_count > 0)
+                            jna.rotation = try self.a.allocator.alloc(ModelNodeKeyframe(Quat), rotation_count);
+
+                        if(scaling_count > 0)
+                            jna.scaling = try self.a.allocator.alloc(ModelNodeKeyframe(Vec3), scaling_count);
+                    }
+
+                    for(keyframes.items) |keyframe, k| {
+                        var keytime = @floatCast(f32, keyframe.Object.get("keytime").?.Float) / 1000.0;
+
+                        if(keyframe.Object.get("translation")) |translation| {
+                            var kf = ModelNodeKeyframe(Vec3){
+                                .keytime = keytime,
+                                .value = parse_vec3(&translation)
+                            };
+                            jna.translation[translation_i] = kf;
+                            translation_i += 1;
+                        }
+                        if(keyframe.Object.get("rotation")) |rotation| {
+                            var kf = ModelNodeKeyframe(Quat){
+                                .keytime = keytime,
+                                .value = parse_quat(&rotation)
+                            };
+                            jna.rotation[rotation_i] = kf;
+                            rotation_i += 1;
+                        }
+                        if(keyframe.Object.get("scale")) |scale| {
+                            var kf = ModelNodeKeyframe(Vec3){
+                                .keytime = keytime,
+                                .value = parse_vec3(&scale)
+                            };
+                            jna.scaling[scaling_i] = kf;
+                            scaling_i += 1;
+                        }
+                    }
+
+                    if(jna.translation.len == 0 and jna.rotation.len == 0 and jna.scaling.len == 0) {
+                        zark.WARNf("Animation: {} Bone: {} has no frames", .{janim.id, jna.node_id});
+                    }
+
+                    janim.node_animations[j] = jna;
+                }
+
+                self.animations[i] = janim;
+            }
+        }
     }
 
-    pub fn parse_vec2(self: *ModelData) Vec2 {
-        var ret: Vec2;
-
-        return ret;
+    pub fn parse_vec2(value: *const json.Value) Vec2 {
+        var array = value.Array.items;
+        return Vec2 {
+            .x = @floatCast(f32, array[0].Float),
+            .y = @floatCast(f32, array[1].Float),
+        };
     }
-    pub fn parse_vec3(self: *ModelData) Vec3 {
-        var ret: Vec3;
-
-        return ret;
+    pub fn parse_vec3(value: *const json.Value) Vec3 {
+        var array = value.Array.items;
+        return Vec3 {
+            .x = @floatCast(f32, array[0].Float),
+            .y = @floatCast(f32, array[1].Float),
+            .z = @floatCast(f32, array[2].Float),
+        };
     }
-    pub fn parse_quat(self: *ModelData) Quat {
-        var ret: Quat;
-
-        return ret;
+    pub fn parse_quat(value: *const json.Value) Quat {
+        var array = value.Array.items;
+        return Quat {
+            .x = @floatCast(f32, array[0].Float),
+            .y = @floatCast(f32, array[1].Float),
+            .z = @floatCast(f32, array[2].Float),
+            .w = @floatCast(f32, array[3].Float),
+        };
     }
 };
 
@@ -355,11 +486,21 @@ pub const ModelNodePart = struct {
     meshpart_id: []const u8 = undefined,
     bones: []Bone = undefined,
 };
-pub const ModelNodeAnimation = struct {};
-pub const ModelAnimation = struct {};
-pub fn ModelNodeKeyframe(comptime T: type, keytime: f32, value: T) type {
+pub const ModelNodeAnimation = struct {
+    node_id: []const u8 = undefined,
+    translation: []ModelNodeKeyframe(Vec3) = &[_]ModelNodeKeyframe(Vec3){},
+    rotation: []ModelNodeKeyframe(Quat) = &[_]ModelNodeKeyframe(Quat){},
+    scaling: []ModelNodeKeyframe(Vec3) = &[_]ModelNodeKeyframe(Vec3){},
+};
+
+pub const ModelAnimation = struct {
+    id: []const u8 = undefined,
+    node_animations: []ModelNodeAnimation = &[_]ModelNodeAnimation{},
+};
+
+pub fn ModelNodeKeyframe(comptime T: type) type {
     return struct {
-        keytime: f32 = keytime,
-        value: T = value,
+        keytime: f32 = 0,
+        value: T = undefined,
     };
 }
