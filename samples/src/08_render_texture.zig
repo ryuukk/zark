@@ -8,12 +8,17 @@ const VertexAttribute = zark.mesh.VertexAttribute;
 const VertexAttributes = zark.mesh.VertexAttributes;
 const PrimitiveType = zark.mesh.PrimitiveType;
 const Mesh = zark.mesh.Mesh;
-
+const RenderTexture = zark.RenderTexture;
+const SpriteBatch = zark.SpriteBatch;
+const Camera = zark.camera.Camera;
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 
 var mesh: Mesh = undefined; 
 var program: ShaderProgram = undefined; 
+var rt: RenderTexture= undefined;
+var batch: SpriteBatch = undefined;
+var camera: Camera = undefined;
 
 var vs =  
 \\#version 330
@@ -56,17 +61,44 @@ fn on_init(engine: *Engine) void {
 
     mesh.set_vertices(&vertices);
     mesh.set_indices(&indices);
-    
+
+
+    batch = SpriteBatch.init(&gpa.allocator);
+    rt = RenderTexture.init(1280, 720) catch unreachable;    
+
+    camera = Camera.init_ortho(1280, 720);
+
+    zark.INFOf("RT: {} {} {}", .{rt.handle, rt.texture.gl_handle, zark.gl.glGetError()});
 }
 
 fn on_tick(engine: *Engine, dt: f32) void {
-    std.log.info("on_tick({})", .{dt});
 
-    zark.gl.glClear(zark.gl.GL_COLOR_BUFFER_BIT | zark.gl.GL_DEPTH_BUFFER_BIT);
-    zark.gl.glClearColor(0.2, 0.2, 0.2, 1.0);  
+    camera.update();
+    //std.log.info("on_render({})", .{dt});
+
+    //zark.gl.glClear(zark.gl.GL_COLOR_BUFFER_BIT | zark.gl.GL_DEPTH_BUFFER_BIT);
+    //zark.gl.glClearColor(0.2, 0.2, 0.2, 1.0); 
+
+    // CLEAR 
+    engine.gfx.enable_depth_test();    
+    engine.gfx.clear(0.0, 0.0, 0.0, 1.0);
+
+    // RENDER TO FB
+    rt.bind();  
+     engine.gfx.clear(0.5, 0.0, 0.0, 1.0);
+     program.bind();
+     mesh.render(&program, PrimitiveType.TRIANGLE);
+    rt.unbind(engine);
+
+    // CLEAR
     
-    program.bind();
-    mesh.render(&program, PrimitiveType.TRIANGLE);
+    engine.gfx.clear(0.0, 0.5, 0.0, 1.0);
+    // RENDER THE FB
+    batch.set_projection(camera.combined);
+    batch.begin();
+    //batch.draw(&rt.texture, 1280*0.25, 720*0.25, 1280*0.5, 720*0.5);
+    batch.draw(&rt.texture, 0, 0, 256, 256);
+    batch.end();
 }
 
 pub fn main() anyerror!void {
@@ -82,5 +114,5 @@ pub fn main() anyerror!void {
     if (!e.run())
         std.log.err("Engine failure", .{});
 
-    std.log.info("the end", .{});
+    std.log.info("the end..", .{});
 }

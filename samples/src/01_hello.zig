@@ -6,12 +6,9 @@ const Config = zark.engine.Config;
 fn on_init(engine: *Engine) void {
     std.log.info("on_init", .{});
 }
-fn on_update(engine: *Engine, dt: f32) void {
-    std.log.info("on_update({})", .{dt});
-}
 
-fn on_render(engine: *Engine, dt: f32) void {
-    std.log.info("on_render({})", .{dt});
+fn on_tick(engine: *Engine, dt: f32) void {
+    std.log.info("on_tick({})", .{dt});
 }
 
 pub fn main() anyerror!void {
@@ -20,8 +17,7 @@ pub fn main() anyerror!void {
     var e = Engine{
         .config = c,
         .on_init = on_init,
-        .on_update = on_update,
-        .on_render = on_render,
+        .on_tick = on_tick,
     };
             
     if (!e.run())

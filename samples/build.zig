@@ -14,6 +14,7 @@ pub fn build(b: *Builder) !void {
     try create_exe(b, target, mode, "spritebatch", "src/05_spritebatch.zig");
     try create_exe(b, target, mode, "cube", "src/06_cube.zig");
     try create_exe(b, target, mode, "model", "src/07_model.zig");
+    try create_exe(b, target, mode, "render_texture", "src/08_render_texture.zig");
 }
 
 
@@ -26,6 +27,7 @@ fn create_exe(b: *Builder, target: std.build.Target, mode: std.builtin.Mode, nam
     exe.addPackagePath("zark", "../zark/src/zark.zig");
     
     exe.addCSourceFile("../libs/glad/src/glad.c", &[_][]const u8{"-std=c99"});
+    //exe.addCSourceFile("../libs/glfw/src/glfw.c", &[_][]const u8{"-std=c99"});
     exe.addCSourceFile("../libs/stb/src/stb.c", &[_][]const u8{"-std=c99"});
     exe.addIncludeDir("../libs/glad/include");
     exe.addIncludeDir("../libs/glfw/include");
@@ -40,6 +42,9 @@ fn create_exe(b: *Builder, target: std.build.Target, mode: std.builtin.Mode, nam
         exe.linkSystemLibrary("User32");
         exe.linkSystemLibrary("Gdi32");
         exe.linkSystemLibrary("shell32");
+    } else {
+        // TODO: crosscompilation complain about GL/gl.h
+        exe.defineCMacro("GLFW_INCLUDE_NONE");
     }
 
     //exe.install();

@@ -89,7 +89,7 @@ pub const Gfx = struct {
             glfw.glfwSwapInterval(glfw.GLFW_FALSE);
 
         self.update_backbuffer_info();
-
+        
         const gl = glad.gladLoadGLLoader(@ptrCast(fn ([*c]const u8) callconv(.C) ?*c_void, glfw.glfwGetProcAddress));
         if (gl == 0) {
             zark.ERROR("Unable to load glad");
@@ -133,10 +133,12 @@ pub const Gfx = struct {
         glfw.glfwGetWindowSize(self.window_ptr, &self.logical_width, &self.logical_height);
     }
 
-
-
     pub fn clear(self: *Gfx, r: f32, g: f32, b: f32, a: f32) void {
         glad.glClear(glad.GL_COLOR_BUFFER_BIT | glad.GL_DEPTH_BUFFER_BIT);
+        glad.glClearColor(r, g, b, a);
+    }
+    pub fn clear_color(self: *Gfx, r: f32, g: f32, b: f32, a: f32) void {
+        glad.glClear(glad.GL_COLOR_BUFFER_BIT);
         glad.glClearColor(r, g, b, a);
     }
 

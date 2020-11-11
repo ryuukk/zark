@@ -1,3 +1,4 @@
+const std = @import("std");
 const zark = @import("zark.zig");
 
 const gl = zark.gl;
@@ -30,8 +31,20 @@ pub const Texture2D = struct {
     width: u32 = 0,
     height: u32 = 0,
 
+    pub fn deinit(self: *Texture2D) void {
+        if(self.gl_handle != 0) {
+            gl.glDeleteTextures(1, &self.gl_handle);
+            self.gl_handle = 0;
+        }
+    }
+
     pub fn bind(self: *Texture2D) void {
         gl.glBindTexture(self.gl_target, self.gl_handle);
+    }
+
+    pub fn set_data(self: *Texture2D, data: []u8, width: usize, height: usize) void {
+        gl.glPixelStorei(gl.GL_UNPACK_ALIGNMENT, 1);
+        gl.glTexImage2D(self.gl_target, 0, gl.GL_RGBA, width, height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, data);
     }
 };
 
@@ -74,9 +87,38 @@ pub fn from_file(file: []const u8) !Texture2D {
     return ret;
 }
 
+pub fn new_tex(width: usize, height: usize) !Texture2D {
+    var target: c_uint = gl.GL_TEXTURE_2D;
+    var handle: c_uint = undefined;
+
+    gl.glGenTextures(1, &handle);
+    gl.glBindTexture(target, handle);
+    
+    zark.INFOf("Texture: size {}:{} - {}", .{width, height, handle});
+
+    gl.glTexParameteri(target, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE);
+    gl.glTexParameteri(target, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE);
+    gl.glTexParameteri(target, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST);
+    gl.glTexParameteri(target, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST);
+    gl.glTexImage2D(target, 0, gl.GL_RGBA, @intCast(c_int, width), @intCast(c_int, height), 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, null);
+
+    
+    gl.glBindTexture(target, 0);
+
+    var ret = Texture2D{
+        .gl_target = target,
+        .gl_handle = handle,
+        .width = @intCast(u32, width),
+        .height = @intCast(u32, height),
+    };
+
+
+    return ret;
+}
+
 pub const RenderTexture = struct {
-    id: GLuint,
-    depth_stencil_id: GLuint = 0,
+    handle: c_uint,
+    depth_stencil_handle: c_uint = 0,
     texture: Texture2D,
 
     pub fn init(width: c_int, height: c_int) !RenderTexture {
@@ -87,62 +129,67 @@ pub const RenderTexture = struct {
         // we allow neither, both or stencil but not just depth
         std.debug.assert(!(depth and !stencil));
 
-        var id: GLuint = undefined;
-        glGenFramebuffers(1, &id);
-        glBindFramebuffer(GL_FRAMEBUFFER, id);
-        errdefer glDeleteFramebuffers(1, &id);
-        defer glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        var handle: c_uint = undefined;
+        gl.glGenFramebuffers(1, &handle);
+        gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, handle);
+        errdefer gl.glDeleteFramebuffers(1, &handle);
+        defer gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, 0);
 
-        var texture = Texture.init();
-        texture.setData(width, height, null);
+        var texture = try new_tex(@intCast(usize, width), @intCast(usize, height));
         errdefer texture.deinit();
 
         // The depth/stencil or stencil buffer
-        var depth_stencil_id: GLuint = 0;
+        var depth_stencil_handle: c_uint = 0;
         if (depth or stencil) {
-            glGenRenderbuffers(1, &depth_stencil_id);
-            glBindRenderbuffer(GL_RENDERBUFFER, depth_stencil_id);
+            gl.glGenRenderbuffers(1, &depth_stencil_handle);
+            gl.glBindRenderbuffer(gl.GL_RENDERBUFFER, depth_stencil_handle);
             if (depth and stencil) {
-                glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8_OES, width, height);
+                gl.glRenderbufferStorage(gl.GL_RENDERBUFFER, gl.GL_DEPTH24_STENCIL8, width, height);
             } else {
-                glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX8, width, height);
+                gl.glRenderbufferStorage(gl.GL_RENDERBUFFER, gl.GL_STENCIL_INDEX8, width, height);
             }
-            glBindRenderbuffer(GL_RENDERBUFFER, 0);
+            gl.glBindRenderbuffer(gl.GL_RENDERBUFFER, 0);
 
-            if (depth) glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_stencil_id);
-            if (stencil) glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, depth_stencil_id);
+            if (depth) gl.glFramebufferRenderbuffer(gl.GL_FRAMEBUFFER, gl.GL_DEPTH_ATTACHMENT, gl.GL_RENDERBUFFER, depth_stencil_handle);
+            if (stencil) gl.glFramebufferRenderbuffer(gl.GL_FRAMEBUFFER, gl.GL_STENCIL_ATTACHMENT, gl.GL_RENDERBUFFER, depth_stencil_handle);
         }
 
         // Set "render texture" as our colour attachement #0
-        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture.id, 0);
+        gl.glFramebufferTexture(gl.GL_FRAMEBUFFER, gl.GL_COLOR_ATTACHMENT0, texture.gl_handle, 0);
 
         // Set the list of draw buffers.
-        var draw_buffers: [1]GLenum = [_]GLenum{GL_COLOR_ATTACHMENT0};
-        glDrawBuffers(1, &draw_buffers);
+        var draw_buffers: [1]gl.GLenum = [_]gl.GLenum{gl.GL_COLOR_ATTACHMENT0};
+        gl.glDrawBuffers(1, &draw_buffers);
 
-        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) return error.FrameBufferFailed;
+        var status = gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER);
+        if (status != gl.GL_FRAMEBUFFER_COMPLETE)
+            return error.FrameBufferFailed;
+
+        gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, 0);  
 
         return RenderTexture{
-            .id = id,
-            .depth_stencil_id = depth_stencil_id,
+            .handle = handle,
+            .depth_stencil_handle = depth_stencil_handle,
             .texture = texture,
         };
     }
 
     pub fn deinit(self: *RenderTexture) void {
         self.texture.deinit();
-        glDeleteFramebuffers(1, &self.id);
-        if (self.depth_stencil_id > 0) glDeleteRenderbuffers(1, &self.depth_stencil_id);
+        gl.glDeleteFramebuffers(1, &self.handle);
+        if (self.depth_stencil_handle > 0) gl.glDeleteRenderbuffers(1, &self.depth_stencil_handle);
     }
 
     pub fn bind(self: *const RenderTexture) void {
-        glBindFramebuffer(GL_FRAMEBUFFER, self.id);
-        glViewport(0, 0, @floatToInt(c_int, self.texture.width), @floatToInt(c_int, self.texture.height));
+        gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, self.handle);
+        gl.glViewport(0, 0, @intCast(c_int, self.texture.width), @intCast(c_int, self.texture.height));
     }
 
-    pub fn unbind(self: *const RenderTexture) void {
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        // TODO: set viewport to screen size!
-        glViewport(0, 0, 800, 600);
+    pub fn unbind(self: *const RenderTexture, engine: *zark.engine.Engine) void {
+        gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, 0);
+        gl.glViewport(0, 0,
+            @floatToInt(c_int, engine.gfx.get_width()),
+            @floatToInt(c_int, engine.gfx.get_height())
+        );
     }
 };

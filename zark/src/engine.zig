@@ -20,8 +20,7 @@ pub const Engine = struct {
     config: Config,
 
     on_init: fn (*Engine) void,
-    on_update: fn (*Engine, f32) void,
-    on_render: fn (*Engine, f32) void,
+    on_tick: fn (*Engine, f32) void,
 
     gfx: gfx.Gfx = undefined,
     input: input.Input = undefined,
@@ -50,8 +49,7 @@ pub const Engine = struct {
 
             self.gfx.track();
 
-            self.on_update(self, self.gfx.delta_time);
-            self.on_render(self, self.gfx.delta_time);
+            self.on_tick(self, self.gfx.delta_time);
 
             glfw.glfwSwapBuffers(self.gfx.window_ptr);
 

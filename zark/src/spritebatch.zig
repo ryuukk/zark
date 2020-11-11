@@ -34,7 +34,7 @@ pub const SpriteBatch = struct {
     _customShader: ?*ShaderProgram = null,
     _ownsShader: bool = false,
 
-    _color: Color = Color.WHITE(),
+    _color: Color = Color.WHITE,
 
     renderCalls: usize = 0,
     totalRenderCalls: usize = 0,

@@ -23,10 +23,7 @@ fn on_init(engine: *Engine) void {
     texture = zark.texture.from_file("bin/data/bg_stars.png") catch unreachable;
 }
 
-fn on_update(engine: *Engine, dt: f32) void {
-}
-
-fn on_render(engine: *Engine, dt: f32) void {
+fn on_tick(engine: *Engine, dt: f32) void {
 
     zark.gl.glClear(zark.gl.GL_COLOR_BUFFER_BIT | zark.gl.GL_DEPTH_BUFFER_BIT);
     zark.gl.glClearColor(0.2, 0.2, 0.2, 1.0);  
@@ -44,8 +41,7 @@ pub fn main() anyerror!void {
     var e = Engine{
         .config = c,
         .on_init = on_init,
-        .on_update = on_update,
-        .on_render = on_render,
+        .on_tick = on_tick,
     };
 
 

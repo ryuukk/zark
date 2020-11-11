@@ -110,14 +110,10 @@ fn on_init(e: *Engine) void {
     };
 
     mesh.set_vertices(&vertices);
-    mesh.set_indices(&indices);
-    
-    
-}
-fn on_update(engine: *Engine, dt: f32) void {
+    mesh.set_indices(&indices);   
 }
 
-fn on_render(engine: *Engine, dt: f32) void {
+fn on_tick(engine: *Engine, dt: f32) void {
 
     //acc += dt;
 
@@ -151,8 +147,7 @@ pub fn main() anyerror!void {
     var e = Engine{
         .config = c,
         .on_init = on_init,
-        .on_update = on_update,
-        .on_render = on_render,
+        .on_tick = on_tick,
     };
 
     if (!e.run())

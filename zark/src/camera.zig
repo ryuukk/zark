@@ -61,6 +61,9 @@ pub const Camera = struct {
         self.projection = Mat4.create_projection(math.abs(self.near), math.abs(self.far), self.fov, aspect);
 
         self.view = Mat4.create_look_at(&self.position, &Vec3.add(&self.position, &self.direction), &self.up);
+
+        // TODO: double check
+        self.combined = Mat4.scl(&self.projection, &self.view);
     }
 
     fn update_orthographic(self: *Camera) void {

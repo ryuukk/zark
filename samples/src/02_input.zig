@@ -23,12 +23,9 @@ fn on_init(e: *Engine) void {
     e.input.processor = &input_processor;
     std.log.info("on_init()", .{});
 }
-fn on_update(engine: *Engine, dt: f32) void {
-    //std.log.info("on_update({})", .{dt});
-}
 
-fn on_render(engine: *Engine, dt: f32) void {
-    //std.log.info("on_render({})", .{dt});
+fn on_tick(engine: *Engine, dt: f32) void {
+    //std.log.info("on_tick({})", .{dt});
 }
 
 const mesh = @import("mesh.zig");
@@ -39,8 +36,7 @@ pub fn main() anyerror!void {
     var e = Engine{
         .config = c,
         .on_init = on_init,
-        .on_update = on_update,
-        .on_render = on_render,
+        .on_tick = on_tick,
     };
 
     if (!e.run())

@@ -40,6 +40,10 @@ pub fn ERRORf(comptime format: []const u8, args: anytype) void {
     std.log.err(format, args);
 }
 
+pub fn PANIC(comptime format: []const u8) void {
+    std.debug.panic(format, .{});
+}
+
 pub fn PANICf(comptime format: []const u8, args: anytype) void {
     std.debug.panic(format, args);
 }

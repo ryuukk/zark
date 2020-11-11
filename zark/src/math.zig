@@ -1,4 +1,5 @@
 const std = @import("std");
+const zark = @import("zark.zig");
 
 pub const PI: f32 = @floatCast(f32, std.math.pi);
 pub const PI2: f32 = PI * 2;
@@ -484,6 +485,93 @@ pub const Mat4 = struct {
            
         };
     }
+
+    pub inline fn inv(mat: *const Mat4) Mat4 {
+        var lDet = mat.m30 * mat.m21 * mat.m12 * mat.m03 - mat.m20 * mat.m31
+            * mat.m12 * mat.m03 - mat.m30 * mat.m11 * mat.m22 * mat.m03 + mat.m10
+            * mat.m31 * mat.m22 * mat.m03 + mat.m20 * mat.m11 * mat.m32 * mat.m03
+            - mat.m10 * mat.m21 * mat.m32 * mat.m03 - mat.m30 * mat.m21 * mat.m02
+            * mat.m13 + mat.m20 * mat.m31 * mat.m02 * mat.m13 + mat.m30 * mat.m01
+            * mat.m22 * mat.m13 - mat.m00 * mat.m31 * mat.m22 * mat.m13 - mat.m20
+            * mat.m01 * mat.m32 * mat.m13 + mat.m00 * mat.m21 * mat.m32 * mat.m13
+            + mat.m30 * mat.m11 * mat.m02 * mat.m23 - mat.m10 * mat.m31 * mat.m02
+            * mat.m23 - mat.m30 * mat.m01 * mat.m12 * mat.m23 + mat.m00 * mat.m31
+            * mat.m12 * mat.m23 + mat.m10 * mat.m01 * mat.m32 * mat.m23 - mat.m00
+            * mat.m11 * mat.m32 * mat.m23 - mat.m20 * mat.m11 * mat.m02 * mat.m33
+            + mat.m10 * mat.m21 * mat.m02 * mat.m33 + mat.m20 * mat.m01 * mat.m12
+            * mat.m33 - mat.m00 * mat.m21 * mat.m12 * mat.m33 - mat.m10 * mat.m01
+            * mat.m22 * mat.m33 + mat.m00 * mat.m11 * mat.m22 * mat.m33;
+        if (lDet == 0.0)
+            zark.PANIC("non-invertible matrix");
+        var invDet = 1.0 / lDet;
+        var tmp = Mat4.identity();
+        tmp.m00 = mat.m12 * mat.m23 * mat.m31 - mat.m13 * mat.m22 * mat.m31
+            + mat.m13 * mat.m21 * mat.m32 - mat.m11 * mat.m23 * mat.m32 - mat.m12
+            * mat.m21 * mat.m33 + mat.m11 * mat.m22 * mat.m33;
+        tmp.m01 = mat.m03 * mat.m22 * mat.m31 - mat.m02 * mat.m23 * mat.m31
+            - mat.m03 * mat.m21 * mat.m32 + mat.m01 * mat.m23 * mat.m32 + mat.m02
+            * mat.m21 * mat.m33 - mat.m01 * mat.m22 * mat.m33;
+        tmp.m02 = mat.m02 * mat.m13 * mat.m31 - mat.m03 * mat.m12 * mat.m31
+            + mat.m03 * mat.m11 * mat.m32 - mat.m01 * mat.m13 * mat.m32 - mat.m02
+            * mat.m11 * mat.m33 + mat.m01 * mat.m12 * mat.m33;
+        tmp.m03 = mat.m03 * mat.m12 * mat.m21 - mat.m02 * mat.m13 * mat.m21
+            - mat.m03 * mat.m11 * mat.m22 + mat.m01 * mat.m13 * mat.m22 + mat.m02
+            * mat.m11 * mat.m23 - mat.m01 * mat.m12 * mat.m23;
+        tmp.m10 = mat.m13 * mat.m22 * mat.m30 - mat.m12 * mat.m23 * mat.m30
+            - mat.m13 * mat.m20 * mat.m32 + mat.m10 * mat.m23 * mat.m32 + mat.m12
+            * mat.m20 * mat.m33 - mat.m10 * mat.m22 * mat.m33;
+        tmp.m11 = mat.m02 * mat.m23 * mat.m30 - mat.m03 * mat.m22 * mat.m30
+            + mat.m03 * mat.m20 * mat.m32 - mat.m00 * mat.m23 * mat.m32 - mat.m02
+            * mat.m20 * mat.m33 + mat.m00 * mat.m22 * mat.m33;
+        tmp.m12 = mat.m03 * mat.m12 * mat.m30 - mat.m02 * mat.m13 * mat.m30
+            - mat.m03 * mat.m10 * mat.m32 + mat.m00 * mat.m13 * mat.m32 + mat.m02
+            * mat.m10 * mat.m33 - mat.m00 * mat.m12 * mat.m33;
+        tmp.m13 = mat.m02 * mat.m13 * mat.m20 - mat.m03 * mat.m12 * mat.m20
+            + mat.m03 * mat.m10 * mat.m22 - mat.m00 * mat.m13 * mat.m22 - mat.m02
+            * mat.m10 * mat.m23 + mat.m00 * mat.m12 * mat.m23;
+        tmp.m20 = mat.m11 * mat.m23 * mat.m30 - mat.m13 * mat.m21 * mat.m30
+            + mat.m13 * mat.m20 * mat.m31 - mat.m10 * mat.m23 * mat.m31 - mat.m11
+            * mat.m20 * mat.m33 + mat.m10 * mat.m21 * mat.m33;
+        tmp.m21 = mat.m03 * mat.m21 * mat.m30 - mat.m01 * mat.m23 * mat.m30
+            - mat.m03 * mat.m20 * mat.m31 + mat.m00 * mat.m23 * mat.m31 + mat.m01
+            * mat.m20 * mat.m33 - mat.m00 * mat.m21 * mat.m33;
+        tmp.m22 = mat.m01 * mat.m13 * mat.m30 - mat.m03 * mat.m11 * mat.m30
+            + mat.m03 * mat.m10 * mat.m31 - mat.m00 * mat.m13 * mat.m31 - mat.m01
+            * mat.m10 * mat.m33 + mat.m00 * mat.m11 * mat.m33;
+        tmp.m23 = mat.m03 * mat.m11 * mat.m20 - mat.m01 * mat.m13 * mat.m20
+            - mat.m03 * mat.m10 * mat.m21 + mat.m00 * mat.m13 * mat.m21 + mat.m01
+            * mat.m10 * mat.m23 - mat.m00 * mat.m11 * mat.m23;
+        tmp.m30 = mat.m12 * mat.m21 * mat.m30 - mat.m11 * mat.m22 * mat.m30
+            - mat.m12 * mat.m20 * mat.m31 + mat.m10 * mat.m22 * mat.m31 + mat.m11
+            * mat.m20 * mat.m32 - mat.m10 * mat.m21 * mat.m32;
+        tmp.m31 = mat.m01 * mat.m22 * mat.m30 - mat.m02 * mat.m21 * mat.m30
+            + mat.m02 * mat.m20 * mat.m31 - mat.m00 * mat.m22 * mat.m31 - mat.m01
+            * mat.m20 * mat.m32 + mat.m00 * mat.m21 * mat.m32;
+        tmp.m32 = mat.m02 * mat.m11 * mat.m30 - mat.m01 * mat.m12 * mat.m30
+            - mat.m02 * mat.m10 * mat.m31 + mat.m00 * mat.m12 * mat.m31 + mat.m01
+            * mat.m10 * mat.m32 - mat.m00 * mat.m11 * mat.m32;
+        tmp.m33 = mat.m01 * mat.m12 * mat.m20 - mat.m02 * mat.m11 * mat.m20
+            + mat.m02 * mat.m10 * mat.m21 - mat.m00 * mat.m12 * mat.m21 - mat.m01
+            * mat.m10 * mat.m22 + mat.m00 * mat.m11 * mat.m22;
+
+        tmp.m00 = tmp.m00 * invDet;
+        tmp.m01 = tmp.m01 * invDet;
+        tmp.m02 = tmp.m02 * invDet;
+        tmp.m03 = tmp.m03 * invDet;
+        tmp.m10 = tmp.m10 * invDet;
+        tmp.m11 = tmp.m11 * invDet;
+        tmp.m12 = tmp.m12 * invDet;
+        tmp.m13 = tmp.m13 * invDet;
+        tmp.m20 = tmp.m20 * invDet;
+        tmp.m21 = tmp.m21 * invDet;
+        tmp.m22 = tmp.m22 * invDet;
+        tmp.m23 = tmp.m23 * invDet;
+        tmp.m30 = tmp.m30 * invDet;
+        tmp.m31 = tmp.m31 * invDet;
+        tmp.m32 = tmp.m32 * invDet;
+        tmp.m33 = tmp.m33 * invDet;
+        return tmp;
+    }
 };
 
 const Stuff = union {
@@ -506,25 +594,11 @@ pub const Color = struct {
         };
     }
 
-    pub inline fn WHITE() Color {
-        return from_rgba(0xFFFFFFFF);
-    }
-    
-    pub inline fn BLACK() Color {
-        return from_rgba(0x000000FF);
-    }
-    
-    pub inline fn RED() Color {
-        return from_rgba(0xFF0000FF);
-    }
-    
-    pub inline fn GREEN() Color {
-        return from_rgba(0x00FF00FF);
-    }
-    
-    pub inline fn BLUE() Color {
-        return from_rgba(0x0000FFFF);
-    }
+    pub const WHITE: Color = from_rgba(0xFFFFFFFF);
+    pub const BLACK: Color = from_rgba(0x000000FF);
+    pub const RED:   Color = from_rgba(0xFF0000FF);
+    pub const GREEN: Color = from_rgba(0x00FF00FF);
+    pub const BLUE:  Color = from_rgba(0x0000FFFF);
 
     pub fn to_float_bits(self: *Color) f32 {
         var color: u32 =

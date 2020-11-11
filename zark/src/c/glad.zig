@@ -7,7 +7,25 @@ pub const PrimitiveType = enum(c_uint) {
     TRIANGLE = GL_TRIANGLES,
 };
 
- 
+ fn checkError(src: std.builtin.SourceLocation) void {
+    var err_code: GLenum = glGetError();
+    while (err_code != GL_NO_ERROR) {
+        var error_name = switch (err_code) {
+            GL_INVALID_ENUM => "GL_INVALID_ENUM",
+            GL_INVALID_VALUE => "GL_INVALID_VALUE",
+            GL_INVALID_OPERATION => "GL_INVALID_OPERATION",
+            GL_STACK_OVERFLOW_KHR => "GL_STACK_OVERFLOW_KHR",
+            GL_STACK_UNDERFLOW_KHR => "GL_STACK_UNDERFLOW_KHR",
+            GL_OUT_OF_MEMORY => "GL_OUT_OF_MEMORY",
+            GL_INVALID_FRAMEBUFFER_OPERATION => "GL_INVALID_FRAMEBUFFER_OPERATION",
+            else => "Unknown Error Enum",
+        };
+
+        std.debug.print("error: {}, file: {}, func: {}, line: {}\n", .{ error_name, src.file, src.fn_name, src.line });
+        err_code = glGetError();
+    }
+}
+
 // pub const struct_gladGLversionStruct = extern struct {
 //     major: c_int,
 //     minor: c_int,

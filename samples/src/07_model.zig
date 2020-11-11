@@ -78,23 +78,24 @@ fn on_init(e: *Engine) void {
     defer data.deinit();
 
     model = Model.init(&gpa.allocator, &data) catch unreachable;
+    model_instance = ModelInstance.init(&gpa.allocator, &model) catch unreachable;
 
     program = ShaderProgram.init(&gpa.allocator, vs, fs);
 }
 
-fn on_update(e: *Engine, dt: f32) void {
-    if(engine.input.is_key_just_pressed(zark.input.Keys.SPACE)) {
-        zark.INFO("yo");
-        
-        var data = ModelData.load(&gpa.allocator, "bin/data/models/male.g3dj") catch unreachable;
-        defer data.deinit();
+//fn on_update(e: *Engine, dt: f32) void {
+//    if(engine.input.is_key_just_pressed(zark.input.Keys.SPACE)) {
+//        zark.INFO("yo");
+//        
+//        var data = ModelData.load(&gpa.allocator, "bin/data/models/male.g3dj") catch unreachable;
+//        defer data.deinit();
+//
+//        var m  = Model.init(&gpa.allocator, &data) catch unreachable;
+//        defer m.deinit() catch unreachable;
+//    }
+//}
 
-        var m  = Model.init(&gpa.allocator, &data) catch unreachable;
-        defer m.deinit() catch unreachable;
-    }
-}
-
-fn on_render(e: *Engine, dt: f32) void {
+fn on_tick(e: *Engine, dt: f32) void {
 
     acc += dt;
 
@@ -115,14 +116,15 @@ fn on_render(e: *Engine, dt: f32) void {
     program.set_uniform_mat4("u_view", &camera.view);
     var world = Mat4.create( 
         Vec3{.x = 0, .y = 0, .z = -5},
-        Quat.from_axisf(cos(acc), sin(acc), sin(acc), acc), 
+        //Quat.from_axisf(cos(acc), sin(acc), sin(acc), acc), 
+        Quat.identity(),
         Vec3{.x = 1.0, .y = 1.0, .z = 1.0}
     );
 
    for(model.nodes) |node| {
        // TODO: this seems wrong
        var transform = world.scl(&node.global_transform);
-       program.set_uniform_mat4("u_world", &world);
+       program.set_uniform_mat4("u_world", &transform);
 
        for(node.parts) |part| {
            part.mesh_part.render(&program, true);
@@ -145,8 +147,7 @@ pub fn main() anyerror!void {
     engine = Engine{
         .config = c,
         .on_init = on_init,
-        .on_update = on_update,
-        .on_render = on_render,
+        .on_tick = on_tick,
     };
 
     if (!engine.run())

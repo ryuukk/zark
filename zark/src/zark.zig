@@ -19,8 +19,14 @@ pub const model_data = @import("model_data.zig");
 pub const texture = @import("texture.zig");
 
 
-pub const SpriteBatch = @import("spritebatch.zig").SpriteBatch;
+pub const Engine = engine.Engine;
+pub const Gfx = gfx.Gfx;
+pub const Input = input.Input;
+pub const InputProcessor = input.InputProcessor;
 
+pub const SpriteBatch = @import("spritebatch.zig").SpriteBatch;
+pub const Texture2D = texture.Texture2D;
+pub const RenderTexture = texture.RenderTexture;
 
 // c stuff
 pub const gl = @import("c/glad.zig");
@@ -35,4 +41,4 @@ pub fn empty(comptime T: type) []T {
     return &[_]T{};
 }
 
-pub const string = @import("string.zig");
+pub const string = @import("string.zig").string;
