@@ -268,7 +268,7 @@ pub const Model = struct {
     }
 };
 
-fn get_node_recursive(nodes: []*Node, id: []const u8) ?*Node {
+pub fn get_node_recursive(nodes: []*Node, id: []const u8) ?*Node {
     for(nodes) |node| {
         if(std.mem.eql(u8, node.id, id)) return node;
     }
@@ -311,6 +311,7 @@ pub const Animation = struct {
     duration: f32 = 0.0,
     node_animations: []NodeAnimation = &[_]NodeAnimation{},
 };
+
 pub const NodeAnimation = struct {
     node: *Node,
     translation: []NodeKeyframe(Vec3) = &[_]NodeKeyframe(Vec3){},
@@ -324,7 +325,6 @@ pub fn NodeKeyframe(comptime T: type) type {
         value: T = undefined,
     };
 }
-
 
 pub const ModelInstance = struct {
     a: std.heap.ArenaAllocator,
@@ -356,8 +356,7 @@ pub const ModelInstance = struct {
 
         self.nodes = try self.a.allocator.alloc(*Node, model.nodes.len);
         for(model.nodes) |node, i| {
-            var cpy = try self.a.allocator.create(Node);
-            cpy.* = try Node.copy(&self.a.allocator, node);
+            var cpy = try Node.copy(&self.a.allocator, node);
             self.nodes[i] = cpy;
         }
     }

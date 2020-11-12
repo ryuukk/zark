@@ -28,8 +28,10 @@ pub const Node = struct {
     children: std.ArrayList(*Node) = undefined,
     parent: ?*Node = null,
 
-    pub fn copy(allocator: *std.mem.Allocator, other: *const Node) !Node {
-        var ret = Node{
+    pub fn copy(allocator: *std.mem.Allocator, other: *const Node) !*Node {
+        var ret = try allocator.create(Node);
+
+        ret.* = Node{
             .id = try allocator.dupe(u8, other.id),
             .inherit_transform = other.inherit_transform,
             .is_animated = other.is_animated,
@@ -47,15 +49,12 @@ pub const Node = struct {
             }
         }
 
-
         ret.children = std.ArrayList(*Node).init(allocator);
         for(other.children.items) |child| {
-            var cpy = try allocator.create(Node);
-            cpy.* = copy(allocator, child) catch unreachable;
+            var cpy = copy(allocator, child) catch unreachable;
             try ret.add_child(cpy);
         }
-
-
+        
         return ret;
     }
 
