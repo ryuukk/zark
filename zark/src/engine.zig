@@ -18,6 +18,7 @@ pub const Audio = struct {};
 
 pub const Engine = struct {
     config: Config,
+    allocator: *std.mem.Allocator,
 
     on_init: fn (*Engine) void,
     on_tick: fn (*Engine, f32) void,

@@ -28,6 +28,36 @@ pub const Node = struct {
     children: std.ArrayList(*Node) = undefined,
     parent: ?*Node = null,
 
+    pub fn copy(allocator: *std.mem.Allocator, other: *const Node) !Node {
+        var ret = Node{
+            .id = try allocator.dupe(u8, other.id),
+            .inherit_transform = other.inherit_transform,
+            .is_animated = other.is_animated,
+            .translation = other.translation,
+            .scale = other.scale,
+            .rotation = other.rotation,
+            .local_transform = other.local_transform,
+            .global_transform = other.global_transform,
+        };
+        
+        if(other.parts.len > 0) {
+            ret.parts = try allocator.alloc(NodePart, other.parts.len);
+            for(other.parts) |otherPart, i| {
+                ret.parts[i] = try NodePart.copy(allocator, &otherPart);
+            }
+        }
+
+
+        ret.children = std.ArrayList(*Node).init(allocator);
+        for(other.children.items) |child| {
+            var cpy = try allocator.create(Node);
+            cpy.* = copy(allocator, child) catch unreachable;
+            try ret.add_child(cpy);
+        }
+
+
+        return ret;
+    }
 
     pub fn calculate_local_transform(self: *Node) void {
         if(!self.is_animated)
@@ -99,10 +129,34 @@ pub const Node = struct {
     }
 };
 
+pub const InvBoneBind = struct {
+    node: *Node,
+    transform: Mat4,
+};
+
 pub const NodePart = struct {
     mesh_part: *MeshPart = undefined,
     //material: *Material = undefined,
-    inv_bone_transforms: []Bone = &[_]Bone{},
+    inv_bone_transforms: []InvBoneBind = &[_]InvBoneBind{},
     bones: []Mat4 = &[_]Mat4{},
     enabled: bool = true,
+
+    pub fn copy(allocator: *std.mem.Allocator, other: *const NodePart) !NodePart {
+        
+        var ret = NodePart {
+            .mesh_part = try allocator.create(MeshPart),
+            .inv_bone_transforms = try allocator.dupe(InvBoneBind, other.inv_bone_transforms),
+            .bones = try allocator.alloc(Mat4, other.bones.len),
+            .enabled = other.enabled
+        };
+
+        ret.mesh_part.* = try MeshPart.copy(allocator, other.mesh_part);
+        
+        var i: usize = 0;
+        while(i < ret.bones.len) : (i += 1) {
+            ret.bones[i] = Mat4.identity();
+        }
+
+        return ret;
+    }
 };

@@ -9,6 +9,7 @@ const Mat4 = zark.math.Mat4;
 const Quat = zark.math.Quat;
 const Node = zark.node.Node;
 const NodePart = zark.node.NodePart;
+const InvBoneBind = zark.node.InvBoneBind;
 const ShaderProgram = zark.shader.ShaderProgram;
 
 usingnamespace zark.model_data;
@@ -16,7 +17,7 @@ usingnamespace zark.model_data;
 
 pub const Model = struct {
     a: std.heap.ArenaAllocator,
-    bones: std.AutoHashMap(*NodePart, *[]Bone) = undefined,
+    nodepart_bones: std.AutoHashMap(*NodePart, *[]Bone) = undefined,
     id: []u8 = &[_]u8{},
     materials: []Material = &[_]Material{},
     nodes: []*Node = &[_]*Node{},
@@ -28,7 +29,7 @@ pub const Model = struct {
         var ret = Model{
             .a = std.heap.ArenaAllocator.init(allocator)
         };
-        ret.bones = std.AutoHashMap(*NodePart, *[]Bone).init(&ret.a.allocator);
+        ret.nodepart_bones = std.AutoHashMap(*NodePart, *[]Bone).init(&ret.a.allocator);
 
         try ret.load_meshes(data.meshes);
         try ret.load_materials(data.materials);
@@ -97,7 +98,7 @@ pub const Model = struct {
     }
 
     fn load_nodes(self: *Model, nodes: []ModelNode) !void {
-        self.bones.clearAndFree();
+        self.nodepart_bones.clearAndFree();
 
         if(nodes.len == 0) return;
 
@@ -106,7 +107,27 @@ pub const Model = struct {
             self.nodes[i] = try self.load_node(node);
         }
 
-        // TODO: inv bone transform
+        var it = self.nodepart_bones.iterator();
+        while (it.next()) |kv| {
+            var part: *NodePart = kv.key;
+            var bones: *[]Bone = kv.value;
+
+            part.inv_bone_transforms = try self.a.allocator.alloc(InvBoneBind, bones.len);
+
+            var i: usize = 0;
+            while(i < bones.len) : (i += 1) {
+                var pair = bones.*[i];
+                var node = get_node_recursive(self.nodes, pair.id);
+                //zark.ASSERTf(node != null, "Can't find node: {}", .{pair.id});
+                if(node == null) {
+                    zark.PANICf("Can't find node: {}", .{pair.id});
+                }
+                part.inv_bone_transforms[i] = InvBoneBind{
+                    .node = node.?,
+                    .transform = Mat4.inv(&pair.transform)
+                };
+            }           
+        }
     }
 
     fn load_node(self: *Model, modelNode: *const ModelNode) !*Node {
@@ -121,34 +142,39 @@ pub const Model = struct {
         node.children = std.ArrayList(*Node).init(&self.a.allocator);
 
         zark.ASSERT(modelNode.parts.len < 10, "wtf");
-        node.parts = try self.a.allocator.alloc(NodePart, modelNode.parts.len);
-        for(modelNode.parts) |*modelNodePart, i| {
 
-            var meshPart: ?*MeshPart = null;
-            //var material: ?*Material = null;
-            if(modelNodePart.meshpart_id.len > 0) {
-                for(self.mesh_parts) |*part| {
-                    if(zark.array.equals(u8, modelNodePart.meshpart_id, part.id)) {
-                        meshPart = part;
-                        break;
+        if(modelNode.parts.len > 0) {
+            node.parts = try self.a.allocator.alloc(NodePart, modelNode.parts.len);
+            for(modelNode.parts) |*modelNodePart, i| {
+
+                var meshPart: ?*MeshPart = null;
+                //var material: ?*Material = null;
+                if(modelNodePart.meshpart_id.len > 0) {
+                    for(self.mesh_parts) |*part| {
+                        if(zark.array.equals(u8, modelNodePart.meshpart_id, part.id)) {
+                            meshPart = part;
+                            break;
+                        }
                     }
                 }
-            }
 
-            // TODO: check material
+                // TODO: check material
 
-            if(meshPart == null) {
-                @panic("something is wrong");
-            }
+                if(meshPart == null) {
+                    @panic("something is wrong");
+                }
 
-            var nodePart = NodePart{};
-            nodePart.mesh_part = meshPart.?;
-            //nodePart.material = material;
-            node.parts[i] = nodePart;
-            if(modelNodePart.bones.len > 0) {
-                try self.bones.put(&nodePart, &modelNodePart.bones);
+                var nodePart = NodePart{};
+                nodePart.mesh_part = meshPart.?;
+                //nodePart.material = material;
+                node.parts[i] = nodePart;
+                if(modelNodePart.bones.len > 0) {
+                    // TODO: this needs to be improved, i don't like it
+                    try self.nodepart_bones.put(&node.parts[i], &modelNodePart.bones);
+                }
             }
         }
+
 
         if(modelNode.children.len > 0) {
             for(modelNode.children) |child, i| {
@@ -160,7 +186,6 @@ pub const Model = struct {
     }
 
     fn load_animations(self: *Model, animations: []ModelAnimation) !void {
-        // TODO: load animations
         if(animations.len == 0) return;
 
         self.animations = try self.a.allocator.alloc(Animation, animations.len);
@@ -241,23 +266,19 @@ pub const Model = struct {
             n.calculate_bone_transforms(true);
         }
     }
-
-
-    fn get_node_recursive(nodes: []*Node, id: []const u8) ?*Node {
-        for(nodes) |node| {
-            if(std.mem.eql(u8, node.id, id)) return node;
-        }
-
-        for(nodes) |node| {
-            var ret = get_node_recursive(node.children.items, id);
-            if(ret != null) 
-                return ret;
-        }
-
-        return null;
-    }
 };
 
+fn get_node_recursive(nodes: []*Node, id: []const u8) ?*Node {
+    for(nodes) |node| {
+        if(std.mem.eql(u8, node.id, id)) return node;
+    }
+    for(nodes) |node| {
+        var ret = get_node_recursive(node.children.items, id);
+        if(ret != null) 
+            return ret;
+    }
+    return null;
+}
 
 pub const MeshPart = struct {
     id: [] u8 = undefined,
@@ -265,6 +286,16 @@ pub const MeshPart = struct {
     offset: usize = 0,
     size: usize = 0,
     mesh: *Mesh = undefined,
+
+    pub fn copy(allocator: *std.mem.Allocator, other: *const MeshPart) !MeshPart {
+        return MeshPart {
+            .id = try allocator.dupe(u8, other.id),
+            .primitive_type = other.primitive_type,
+            .offset = other.offset,
+            .size = other.size,
+            .mesh = other.mesh
+        };
+    }
 
     pub fn render(self: *MeshPart, program: *ShaderProgram, autobind: bool) void {
         self.mesh.render_full(program, self.primitive_type, self.offset, self.size, autobind);
@@ -303,14 +334,14 @@ pub const ModelInstance = struct {
     animations: []Animation = &[_]Animation{},
     transform: Mat4 = Mat4.identity(),
 
-    pub fn init(model: *Model, allocator: *std.mem.Allocator) ModelInstance {
+    pub fn init(allocator: *std.mem.Allocator, model: *Model) !ModelInstance {
         var ret = ModelInstance {
             .a = std.heap.ArenaAllocator.init(allocator),
             .model = model,
         };
-        ret.copy_nodes(model);
+        try ret.copy_nodes(model);
         ret.invalidate();
-        ret.copy_animations(model);
+        try ret.copy_animations(model);
         ret.calculate_transforms();
         return ret;
     }
@@ -319,20 +350,115 @@ pub const ModelInstance = struct {
         self.a.deinit();
     }
 
-    pub fn copy_nodes(self: *ModelInstance, model: *Model) void {
+    fn copy_nodes(self: *ModelInstance, model: *Model) !void {
+        if(model.nodes.len == 0)
+            return;
 
+        self.nodes = try self.a.allocator.alloc(*Node, model.nodes.len);
+        for(model.nodes) |node, i| {
+            var cpy = try self.a.allocator.create(Node);
+            cpy.* = try Node.copy(&self.a.allocator, node);
+            self.nodes[i] = cpy;
+        }
     }
-    pub fn copy_animations(self: *ModelInstance, model: *Model) void {
-    }
-
-    pub fn copy_animation(self: *ModelInstance, animation: *Animation, shareKF: bool) void {
-    }
-
-    pub fn invalidate(self: *ModelInstance) void {
+    
+    fn copy_animations(self: *ModelInstance, model: *Model) !void {
+        if(model.animations.len == 0)
+            return;
         
+        self.animations = try self.a.allocator.alloc(Animation, model.animations.len);
+
+        for(model.animations) |sourceAnim, i| {
+            var animation = Animation{
+                .id = try self.a.allocator.dupe(u8, sourceAnim.id),
+                .duration = sourceAnim.duration,
+                .node_animations = try self.a.allocator.alloc(NodeAnimation, sourceAnim.node_animations.len)
+            };
+            
+            for(sourceAnim.node_animations) |mna, j| {
+                var node = get_node_recursive(self.nodes, mna.node.id);
+                if(node == null)
+                    zark.PANICf("Can't find node: {}", .{mna.node.id});
+
+                var nodeAnim = NodeAnimation{
+                    .node  = node.?, 
+                };
+
+                // TODO: if(shareKeyFrames) {}
+
+                nodeAnim.translation = try self.a.allocator.alloc(NodeKeyframe(Vec3), mna.translation.len);
+                nodeAnim.rotation = try self.a.allocator.alloc(NodeKeyframe(Quat), mna.rotation.len);
+                nodeAnim.scaling = try self.a.allocator.alloc(NodeKeyframe(Vec3), mna.scaling.len);
+                
+                for(mna.translation) |kf, k| {
+                    if(kf.keytime > animation.duration)
+                        animation.duration = kf.keytime;
+                    nodeAnim.translation[k] = .{
+                        .keytime = kf.keytime,
+                        .value = kf.value
+                    };
+                }
+                for(mna.rotation) |kf, k| {
+                    if(kf.keytime > animation.duration)
+                        animation.duration = kf.keytime;
+                    nodeAnim.rotation[k] = .{
+                        .keytime = kf.keytime,
+                        .value = kf.value
+                    };
+                }
+                for(mna.scaling) |kf, k| {
+                    if(kf.keytime > animation.duration)
+                        animation.duration = kf.keytime;
+                    nodeAnim.scaling[k] = .{
+                        .keytime = kf.keytime,
+                        .value = kf.value
+                    };
+                }
+
+                animation.node_animations[j] = nodeAnim;
+            }
+
+            self.animations[i] = animation;
+        }
+    }
+
+    fn invalidate(self: *ModelInstance) void {
+        for(self.nodes) |node| {
+            self.invalidate_node(node);
+        }
+    }
+
+    fn invalidate_node(self: *ModelInstance, node: *const Node) void {
+        for(node.parts) |part| {
+            var bindPose = part.inv_bone_transforms;
+            var j: usize = 0;
+            while(j < bindPose.len) : (j += 1) {
+                var nn = get_node_recursive(self.nodes, bindPose[j].node.id);
+                if(nn == null) {
+                    zark.PANICf("Can't find node: {}", .{bindPose[j].node.id});
+                }
+                var t = bindPose[j].transform;
+                part.inv_bone_transforms[j] = .{
+                    .node = nn.?,
+                    .transform = t,
+                };
+            }
+
+            // TODO: finish materials
+
+
+            for(node.children.items) |child| {
+                self.invalidate_node(child);
+            }
+        }
     }
 
     pub fn calculate_transforms(self: *ModelInstance) void {
-        
+        for(self.nodes) |node| {
+            node.calculate_transforms(true);
+        }
+        for(self.nodes) |node| {
+            node.calculate_bone_transforms(true);
+        }
     }
 };

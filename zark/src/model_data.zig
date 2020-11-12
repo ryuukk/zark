@@ -238,7 +238,7 @@ pub const ModelData = struct {
                         } else {
                             r = Quat.identity();
                         }
-                        jpart.bones[j] = Bone{.id = node_id, .mt = Mat4.set(&t, &r, &s)}; 
+                        jpart.bones[j] = Bone{.id = node_id, .transform = Mat4.set(&t, &r, &s)}; 
                     }
                 }
                 jnode.parts[i] = jpart;
@@ -477,8 +477,9 @@ pub const ModelNode = struct {
 
 pub const Bone = struct {
     id: []const u8,
-    mt: Mat4,
+    transform: Mat4,
 };
+
 pub const ModelNodePart = struct {
     material_id: []const u8 = undefined,
     meshpart_id: []const u8 = undefined,
