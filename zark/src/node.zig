@@ -146,7 +146,7 @@ pub const NodePart = struct {
         var ret = NodePart {
             .mesh_part = try allocator.create(MeshPart),
             .inv_bone_transforms = try allocator.dupe(InvBoneBind, other.inv_bone_transforms),
-            .bones = try allocator.alloc(Mat4, other.bones.len),
+            .bones = try allocator.alloc(Mat4, other.inv_bone_transforms.len),
             .enabled = other.enabled
         };
 
