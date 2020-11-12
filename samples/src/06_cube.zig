@@ -12,8 +12,6 @@ const Mesh = zark.mesh.Mesh;
 const Camera = zark.camera.Camera;
 const CameraController = zark.camera.CameraController;
 
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-
 var mesh: Mesh = undefined; 
 var program: ShaderProgram = undefined;
 var camera: Camera = undefined;
@@ -54,22 +52,22 @@ var fs =
 ;
 
 
-fn on_init(e: *Engine) void {
+fn on_init(engine: *Engine) void {
     std.log.info("on_init", .{});
 
     camera = Camera.init_perspective(67, 1280, 720);
-    controller = CameraController.init(e);
+    controller = CameraController.init(engine);
 
     
 
-    e.input.processor = &controller.base;
+    engine.input.processor = &controller.base;
 
     var attr = VertexAttributes{};
     attr.add(VertexAttribute.position());
     attr.add(VertexAttribute.normal());
 
-    mesh =  Mesh.init(&gpa.allocator, attr, true, 24, 36);
-    program = ShaderProgram.init(&gpa.allocator, vs, fs);
+    mesh =  Mesh.init(engine.allocator, attr, true, 24, 36);
+    program = ShaderProgram.init(engine.allocator, vs, fs);
 
     var positions = [_] f32 { 
                 -0.5, -0.5, -0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5,
@@ -144,8 +142,10 @@ pub fn main() anyerror!void {
     
     var c = Config{ .window_title = "zark - sample: 06_cube" };
     
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     var e = Engine{
         .config = c,
+        .allocator = &gpa.allocator,
         .on_init = on_init,
         .on_tick = on_tick,
     };

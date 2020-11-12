@@ -1,6 +1,9 @@
 const std = @import("std");
 const zark = @import("zark");
 
+pub const log_level: std.log.Level = .debug;
+
+
 pub usingnamespace zark.math;
 const Engine = zark.engine.Engine;
 const Config = zark.engine.Config;
@@ -12,9 +15,8 @@ const ModelData = zark.model_data.ModelData;
 const Model = zark.model.Model;
 const ModelInstance = zark.model.ModelInstance;
 
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+//var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 
-var engine: Engine = undefined;
 var mesh: Mesh = undefined; 
 var program: ShaderProgram = undefined;
 var camera: Camera = undefined;
@@ -66,21 +68,21 @@ var fs =
 \\}
 ;
 
-fn on_init(e: *Engine) void {
-    std.log.info("on_init", .{});
+fn on_init(engine: *Engine) void {
+    zark.INFO("on_init");
 
     camera = Camera.init_perspective(67, 1280, 720);
-    controller = CameraController.init(e);
+    controller = CameraController.init(engine);
 
-    e.input.processor = &controller.base;
+    engine.input.processor = &controller.base;
 
-    var data = ModelData.load(&gpa.allocator, "bin/data/models/male.g3dj") catch unreachable;
+    var data = ModelData.load(engine.allocator, "bin/data/models/male.g3dj") catch unreachable;
     defer data.deinit();
 
-    model = Model.init(&gpa.allocator, &data) catch unreachable;
-    model_instance = ModelInstance.init(&gpa.allocator, &model) catch unreachable;
+    model = Model.init(engine.allocator, &data) catch unreachable;
+    model_instance = ModelInstance.init(engine.allocator, &model) catch unreachable;
 
-    program = ShaderProgram.init(&gpa.allocator, vs, fs);
+    program = ShaderProgram.init(engine.allocator, vs, fs);
 }
 
 //fn on_update(e: *Engine, dt: f32) void {
@@ -121,7 +123,7 @@ fn on_tick(e: *Engine, dt: f32) void {
         Vec3{.x = 1.0, .y = 1.0, .z = 1.0}
     );
 
-   for(model.nodes) |node| {
+   for(model_instance.nodes) |node| {
        // TODO: this seems wrong
        var transform = world.scl(&node.global_transform);
        program.set_uniform_mat4("u_world", &transform);
@@ -133,26 +135,23 @@ fn on_tick(e: *Engine, dt: f32) void {
 }
 
 pub fn main() anyerror!void {
-       // allocate a large enough buffer to store the cwd
     var buf: [std.fs.MAX_PATH_BYTES]u8 = undefined;
-    
-    // getcwd writes the path of the cwd into buf and returns a slice of buf with the len of cwd
-    const cwd = try std.os.getcwd(&buf);
-
-    // print out the cwd
-    std.debug.warn("cwd: {}\n\n", .{cwd}); 
+    const cwd = try std.os.getcwd(&buf);    
+    zark.INFOf("cwd: {}", .{cwd}); 
 
     var c = Config{ .window_title = "zark - sample: 07_model" };
     
-    engine = Engine{
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var e = Engine{
         .config = c,
+        .allocator = &gpa.allocator,
         .on_init = on_init,
         .on_tick = on_tick,
     };
 
-    if (!engine.run())
-        std.log.err("Engine failure", .{});
+    if (!e.run())
+        zark.ERROR("Engine failure");
 
-    std.log.info("the end", .{});
+    zark.INFO("the end");
     
 }

@@ -14,8 +14,10 @@ fn on_tick(engine: *Engine, dt: f32) void {
 pub fn main() anyerror!void {
     var c = Config{ .window_title = "zark - sample: 01_hello" };
 
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     var e = Engine{
         .config = c,
+        .allocator = &gpa.allocator,
         .on_init = on_init,
         .on_tick = on_tick,
     };

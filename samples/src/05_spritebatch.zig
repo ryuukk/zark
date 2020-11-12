@@ -8,9 +8,6 @@ const SpriteBatch = zark.SpriteBatch;
 const Texture2D = zark.texture.Texture2D;
 const Camera = zark.camera.Camera;
 
-
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-
 var camera: Camera = undefined;
 var texture: Texture2D = undefined;
 var batch: SpriteBatch = undefined;
@@ -19,7 +16,7 @@ fn on_init(engine: *Engine) void {
     std.log.info("on_init", .{});
     
     camera = Camera.init_ortho(engine.gfx.get_width(), engine.gfx.get_height());
-    batch = SpriteBatch.init(&gpa.allocator);
+    batch = SpriteBatch.init(engine.allocator);
     texture = zark.texture.from_file("bin/data/bg_stars.png") catch unreachable;
 }
 
@@ -38,12 +35,13 @@ fn on_tick(engine: *Engine, dt: f32) void {
 pub fn main() anyerror!void {
     var c = Config{ .window_title = "zark - sample: 05_spritebatch" };
 
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     var e = Engine{
         .config = c,
+        .allocator = &gpa.allocator,
         .on_init = on_init,
         .on_tick = on_tick,
     };
-
 
     if (!e.run())
         std.log.err("Engine failure", .{});

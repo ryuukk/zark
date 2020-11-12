@@ -9,9 +9,6 @@ const VertexAttributes = zark.mesh.VertexAttributes;
 const PrimitiveType = zark.mesh.PrimitiveType;
 const Mesh = zark.mesh.Mesh;
 
-
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-
 var mesh: Mesh = undefined; 
 var program: ShaderProgram = undefined; 
 
@@ -44,8 +41,8 @@ fn on_init(engine: *Engine) void {
     var attr = VertexAttributes{};
     attr.add(VertexAttribute.position());
 
-    mesh =  Mesh.init(&gpa.allocator, attr, true, 3, 3);
-    program = ShaderProgram.init(&gpa.allocator, vs, fs);
+    mesh =  Mesh.init(engine.allocator, attr, true, 3, 3);
+    program = ShaderProgram.init(engine.allocator, vs, fs);
 
     var vertices = [_] f32 { 
         -1.0, -1.0, 0.0,
@@ -72,12 +69,13 @@ fn on_tick(engine: *Engine, dt: f32) void {
 pub fn main() anyerror!void {
     var c = Config{ .window_title = "zark - sample: 03_triangle" };
 
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     var e = Engine{
         .config = c,
+        .allocator = &gpa.allocator,
         .on_init = on_init,
         .on_tick = on_tick,
     };
-
 
     if (!e.run())
         std.log.err("Engine failure", .{});

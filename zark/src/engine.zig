@@ -30,6 +30,16 @@ pub const Engine = struct {
     quit: bool = false,
     quit_force: bool = false,
 
+    pub fn init(config: *const Config, init: fn(*Engine)void, tick: fn(*Engine, f32)void) Engine {
+        var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+        return .{
+            .config = config,
+            .on_init = init,
+            .on_tick = tick
+        };
+        // TODO: rethink this, and add error stuff
+    }
+
     pub fn run(self: *Engine) bool {
         self.gfx = gfx.Gfx{};
         self.input = input.Input{};
