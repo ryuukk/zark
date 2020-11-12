@@ -330,6 +330,8 @@ pub const VertexBuffer = struct {
         var vsize = size * @intCast(usize, @divFloor(attr.vertex_size, 4));
 
         self.attributes = attr;
+        
+        // TODO: i shouldn't have to allocate a buffer here, remove that asap
         self.vertices = allocator.alloc(f32, vsize) catch @panic("can't allocate");
         self.cached_locations = allocator.alloc(i32, attr.count) catch @panic("can't allocate");
 
@@ -443,7 +445,6 @@ pub const Mesh = struct {
         if (self.index_buffer) |it| {
             it.deinit();
         }
-        self.index_buffer.?.deinit();
     }
 
     pub fn render(self: *Mesh, program: *ShaderProgram, ptype: PrimitiveType) void {

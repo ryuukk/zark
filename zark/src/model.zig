@@ -43,6 +43,9 @@ pub const Model = struct {
 
     pub fn deinit(self: *Model) !void {
         // TODO: i should cleanup mesh properly
+        for(self.meshes) |mesh| {
+            mesh.deinit();
+        }
         self.a.deinit();
     }
 
