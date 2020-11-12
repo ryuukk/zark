@@ -116,6 +116,7 @@ fn on_tick(e: *Engine, dt: f32) void {
     program.bind();
     program.set_uniform_mat4("u_proj", &camera.projection);
     program.set_uniform_mat4("u_view", &camera.view);
+
     var world = Mat4.create( 
         Vec3{.x = 0, .y = 0, .z = -5},
         //Quat.from_axisf(cos(acc), sin(acc), sin(acc), acc), 
@@ -123,14 +124,26 @@ fn on_tick(e: *Engine, dt: f32) void {
         Vec3{.x = 1.0, .y = 1.0, .z = 1.0}
     );
 
-   for(model_instance.nodes) |node| {
-       var transform = world.scl(&node.global_transform);
-       program.set_uniform_mat4("u_world", &transform);
-
-       for(node.parts) |part| {
-           part.mesh_part.render(&program, true);
-       }
+    model_instance.calculate_transforms();
+    for(model_instance.nodes) |node| {
+       render_node(&program, node, world);
    }
+}
+
+fn render_node(p: *ShaderProgram, node: *zark.node.Node, world: Mat4) void {
+
+    if(node.parts.len > 0) {
+        var transform = world.scl(&node.global_transform);
+        p.set_uniform_mat4("u_world", &transform);
+
+        for(node.parts) |part| {
+            part.mesh_part.render(p, true);
+        }
+    }
+
+    for(node.children.items) |child| {
+        render_node(p, child, world);
+    }
 }
 
 pub fn main() anyerror!void {
