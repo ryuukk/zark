@@ -308,9 +308,8 @@ pub const VertexBuffer = struct {
     vertices: []f32 = undefined,
     cached_locations: []i32 = undefined,
     cache_valid: bool = false,
+
     pub fn new(allocator: *std.mem.Allocator, static: bool, size: usize, attr: VertexAttributes) VertexBuffer {
-    
-        
         var vsize = size * @intCast(usize, @divFloor(attr.vertex_size, 4));
 
         var ret = VertexBuffer{};
@@ -341,7 +340,9 @@ pub const VertexBuffer = struct {
         glad.glGenVertexArrays(1, &self.vao_handle);
     }
 
-    pub fn deinit(self: *VertexBuffer) void {
+    pub fn deinit(self: *VertexBuffer, allocator: *std.mem.Allocator) void {
+        allocator.free(self.vertices);
+        allocator.free(self.cached_locations);
         glad.glBindBuffer(glad.GL_ARRAY_BUFFER, 0);
         glad.glDeleteBuffers(1, &self.buffer_handle);
         glad.glDeleteVertexArrays(1, &self.vao_handle);
@@ -440,11 +441,9 @@ pub const Mesh = struct {
         return ret;
     }
 
-    pub fn deinit(self: *Mesh) void {
-        self.vertex_buffer.deinit();
-        if (self.index_buffer) |it| {
-            it.deinit();
-        }
+    pub fn deinit(self: *Mesh, allocator: *std.mem.Allocator) void {
+        self.vertex_buffer.deinit(allocator);
+        self.index_buffer.deinit();
     }
 
     pub fn render(self: *Mesh, program: *ShaderProgram, ptype: PrimitiveType) void {
@@ -454,10 +453,10 @@ pub const Mesh = struct {
         );
     }
 
-    // TODO: finish
     pub fn set_vertices(self: *Mesh, data: []const f32) void {
         self.vertex_buffer.set_data(data, 0, data.len);
     }
+
     pub fn set_indices(self: *Mesh, data: []const i32) void {
         self.index_buffer.set_data(data, 0, data.len);
     }
@@ -485,6 +484,7 @@ pub const Mesh = struct {
             self.index_buffer.bind();
         }
     }
+
     pub fn unbind(self: *Mesh, program: *ShaderProgram, locations: ?*[]i32) void {
         self.vertex_buffer.unbind(program, locations);
         if(self.index_buffer.get_num_indices() > 0) {

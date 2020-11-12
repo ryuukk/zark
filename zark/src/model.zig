@@ -41,10 +41,13 @@ pub const Model = struct {
         return ret;
     }
 
-    pub fn deinit(self: *Model) !void {
+    pub fn deinit(self: *Model) void {
         // TODO: i should cleanup mesh properly
+        // plan:
+        //    - don't allocate arrays in VertexBuffer, i shouldn't have to store that here
+        //    - remove allocator from init/deinit functions, since nothing will need that   
         for(self.meshes) |mesh| {
-            mesh.deinit();
+            mesh.deinit(&self.a.allocator);
         }
         self.a.deinit();
     }
@@ -349,7 +352,7 @@ pub const ModelInstance = struct {
         return ret;
     }
 
-    pub fn deinit(self: *ModelInstance) !void {
+    pub fn deinit(self: *ModelInstance) void {
         self.a.deinit();
     }
 
