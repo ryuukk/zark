@@ -124,7 +124,6 @@ fn on_tick(e: *Engine, dt: f32) void {
     );
 
    for(model_instance.nodes) |node| {
-       // TODO: this seems wrong
        var transform = world.scl(&node.global_transform);
        program.set_uniform_mat4("u_world", &transform);
 
