@@ -85,20 +85,7 @@ fn on_init(engine: *Engine) void {
     program = ShaderProgram.init(engine.allocator, vs, fs);
 }
 
-//fn on_update(e: *Engine, dt: f32) void {
-//    if(engine.input.is_key_just_pressed(zark.input.Keys.SPACE)) {
-//        zark.INFO("yo");
-//        
-//        var data = ModelData.load(&gpa.allocator, "bin/data/models/male.g3dj") catch unreachable;
-//        defer data.deinit();
-//
-//        var m  = Model.init(&gpa.allocator, &data) catch unreachable;
-//        defer m.deinit() catch unreachable;
-//    }
-//}
-
 fn on_tick(e: *Engine, dt: f32) void {
-
     acc += dt;
 
     controller.update(&camera, dt);
