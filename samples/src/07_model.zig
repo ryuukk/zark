@@ -33,14 +33,15 @@ fn on_init(engine: *Engine) void {
 
     engine.input.processor = &controller.base;
 
-    var data = ModelData.load(engine.allocator, "bin/data/models/male.g3dj") catch unreachable;
+    var data = ModelData.load(engine.allocator, "bin/data/models/knight.g3dj") catch unreachable;
     defer data.deinit();
 
     model = Model.init(engine.allocator, &data) catch unreachable;
     model_instance = ModelInstance.init(engine.allocator, &model) catch unreachable;
     anim_controller = AnimationController.init(engine.allocator, &model_instance);
 
-    _ = anim_controller.animate_full("Armature|run_00", 0, -1, -1, 1, 0.5);
+    //_ = anim_controller.animate_full("Armature|run_00", 0, -1, -1, 1, 0.5);
+    _ = anim_controller.animate_full("Attack", 0, -1, -1, 1, 0.5);
 
     program = ShaderProgram.init(engine.allocator, vs_SKINNED, fs);
 }
@@ -57,7 +58,7 @@ fn on_tick(e: *Engine, dt: f32) void {
     zark.gl.glClearColor(0.2, 0.2, 0.2, 1.0);  
     
     zark.gl.glEnable(zark.gl.GL_DEPTH_TEST);
-    zark.gl.glPolygonMode(zark.gl.GL_FRONT_AND_BACK, zark.gl.GL_LINE );
+    //zark.gl.glPolygonMode(zark.gl.GL_FRONT_AND_BACK, zark.gl.GL_LINE );
 
     camera.update();
     program.bind();
@@ -77,9 +78,7 @@ fn render_node(p: *ShaderProgram, node: *zark.node.Node, world: Mat4) void {
     if(node.parts.len > 0) {
         var transform = world.scl(&node.global_transform);
         p.set_uniform_mat4("u_world", &transform);
-
         for(node.parts) |part| {
-
             p.set_uniform_mat4_array("u_bones", part.bones.len, &part.bones);
             part.mesh_part.render(p, true);
         }
@@ -112,7 +111,9 @@ pub fn main() anyerror!void {
     
 }
 
-
+var t = 
+\\#version 0
+;
 
 var vs =  
 \\#version 330
