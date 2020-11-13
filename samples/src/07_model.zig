@@ -111,10 +111,6 @@ pub fn main() anyerror!void {
     
 }
 
-var t = 
-\\#version 0
-;
-
 var vs =  
 \\#version 330
 \\
