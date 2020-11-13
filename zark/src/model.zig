@@ -91,7 +91,7 @@ pub const Model = struct {
                 std.mem.copy(i32, indices.?[offset .. offset + p.indices.len], p.indices);
             }
 
-
+            offset += part.size;
             self.mesh_parts[i] = part;
         }
 
@@ -124,10 +124,8 @@ pub const Model = struct {
             while(i < bones.len) : (i += 1) {
                 var pair = bones.*[i];
                 var node = get_node_recursive(self.nodes, pair.id);
-                //zark.ASSERTf(node != null, "Can't find node: {}", .{pair.id});
-                if(node == null) {
-                    zark.PANICf("Can't find node: {}", .{pair.id});
-                }
+                zark.ASSERTf(node != null, "Can't find node: {}", .{pair.id});
+
                 part.inv_bone_transforms[i] = InvBoneBind{
                     .node = node.?,
                     .transform = Mat4.inv(&pair.transform)
@@ -180,7 +178,6 @@ pub const Model = struct {
                 }
             }
         }
-
 
         if(modelNode.children.len > 0) {
             for(modelNode.children) |child, i| {
