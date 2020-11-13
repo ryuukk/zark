@@ -84,6 +84,21 @@ pub const Node = struct {
 
     pub fn calculate_bone_transforms(self: *Node, recursive: bool) void {
         // TODO: implement
+        for(self.parts) |*part| {
+            if(part.inv_bone_transforms.len == 0 or part.bones.len == 0 or  part.inv_bone_transforms.len != part.bones.len)
+                continue;
+            const n = part.inv_bone_transforms.len;
+            var i: usize = 0;
+            while(i < n) : (i += 1) {
+                part.bones[i] = part.inv_bone_transforms[i].node.global_transform.scl(&part.inv_bone_transforms[i].transform);
+            }
+        }
+
+        if(recursive) {
+            for(self.children.items) |child| {
+                child.calculate_bone_transforms(true);
+            }
+        }
     }
 
     pub fn add_child(self: *Node, node: *Node) !void {

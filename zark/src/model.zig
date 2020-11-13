@@ -466,4 +466,11 @@ pub const ModelInstance = struct {
             node.calculate_bone_transforms(true);
         }
     }
+
+    pub fn get_animation(self: *ModelInstance, id: []const u8) ?*Animation {
+        for(self.animations) |*animation| {
+            if (std.mem.eql(u8, animation.id, id)) return animation;
+        }
+        return null;
+    }
 };

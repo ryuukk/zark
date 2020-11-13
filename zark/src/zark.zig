@@ -16,7 +16,9 @@ pub const camera = @import("camera.zig");
 pub const node = @import("node.zig");
 pub const model = @import("model.zig");
 pub const model_data = @import("model_data.zig");
+pub const model_anim = @import("model_animation.zig");
 pub const texture = @import("texture.zig");
+pub const spritebatch = @import("spritebatch.zig");
 
 
 pub const Engine = engine.Engine;
@@ -24,7 +26,7 @@ pub const Gfx = gfx.Gfx;
 pub const Input = input.Input;
 pub const InputProcessor = input.InputProcessor;
 
-pub const SpriteBatch = @import("spritebatch.zig").SpriteBatch;
+pub const SpriteBatch = spritebatch.SpriteBatch;
 pub const Texture2D = texture.Texture2D;
 pub const RenderTexture = texture.RenderTexture;
 

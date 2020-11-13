@@ -118,7 +118,7 @@ pub const ShaderProgram = struct {
 
             var location = glad.glGetUniformLocation(self.program, buffer.ptr);
 
-            std.debug.assert(location == i);
+            //std.debug.assert(location == i);
 
             self.uniforms[i] = ShaderLoc{
                 .loc_type = LocType.UNIFORM,
@@ -264,6 +264,13 @@ pub const ShaderProgram = struct {
         var location = self.fetch_uniform_location(name, true); // TODO: change once static pedantic bool added
 
         glad.glUniformMatrix4fv(location, 1, 0, &value.m00);
+    }
+
+    pub fn set_uniform_mat4_array(self: *ShaderProgram, name: []const u8, size: usize, value: *const [] math.Mat4) void {
+        self.check_managed();
+        var location = self.fetch_uniform_location(name, true); // TODO: change once static pedantic bool added
+
+        glad.glUniformMatrix4fv(location, @intCast(c_int, size), 0, &value.*[0].m00);
     }
 
     pub fn set_uniform_i(self: *ShaderProgram, name: []const u8, value: i32) void {
