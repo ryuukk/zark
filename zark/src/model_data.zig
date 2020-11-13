@@ -122,6 +122,8 @@ pub const ModelData = struct {
                 va.add(VertexAttribute.blend_weight2());
             } else if(equals(u8, value, "BLENDWEIGHT3")) {
                 va.add(VertexAttribute.blend_weight3());
+            } else if(equals(u8, value, "COLORPACKED")) {
+                va.add(VertexAttribute.color_packed());
             } else {
                 zark.PANICf("Vertex Attribute: {} not supported", .{value});
             }
