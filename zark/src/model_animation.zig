@@ -300,7 +300,7 @@ pub const AnimationController = struct {
         if((index + 1) < nodeAnim.rotation.len) {
             const secondKeyframe = nodeAnim.rotation[index + 1];
             const t = (time - firstKeyframe.keytime) / (secondKeyframe.keytime - firstKeyframe.keytime);
-            //return firstKeyframe.value.slerp(&secondKeyframe.value, t);
+            return firstKeyframe.value.slerp(&secondKeyframe.value, t);
         }
 
         return firstKeyframe.value;
