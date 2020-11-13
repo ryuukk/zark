@@ -27,7 +27,7 @@ If you want to help, review the code, offer improvements, go ahead!
 
 
 
-![gif from model sample](https://i.imgur.com/asNYCOT.gifv)
+![gif from model sample](https://i.imgur.com/asNYCOT.gif)
 
 
 ## Features
