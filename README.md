@@ -1,6 +1,6 @@
 ## ZARK
 
-ZARK is a simple OpenGL game framework, it is not a fully featured engine, instead it gives you a simple APIs to get started
+ZARK is a simple OpenGL game framework, it is not a fully featured engine, instead it gives you simple APIs to get started
 
 #### Notes
 
@@ -13,7 +13,7 @@ ZARK is a simple OpenGL game framework, it is not a fully featured engine, inste
 - something battle tested
 - vulkan, directx, metal
 
-✅ This library is for you if you need: (it probably won't be for :trollface:)
+✅ This library is for you if you need: *(it probably won't be for you :trollface:)*
 
 - a dead simple library
 - a very efficient and simple 3D rendering API with skeletal animations
@@ -27,7 +27,7 @@ If you want to help, review the code, offer improvements, go ahead!
 
 
 
-![gif from model sample](https://i.imgur.com/PRZ8fzV.gif)
+![gif from model sample](https://i.imgur.com/mD8KPBg.gif)
 
 
 ## Features
