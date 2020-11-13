@@ -29,6 +29,10 @@ pub inline fn cos(rad: anytype) @TypeOf(rad) {
     return std.math.cos(rad);
 }
 
+pub inline fn acos(rad: anytype) @TypeOf(rad) {
+    return std.math.acos(rad);
+}
+
 pub inline fn atan2(y: f32, x: f32) f32 {
     return std.math.atan2(f32, y, x);
 }
@@ -79,6 +83,21 @@ pub const Vec3 = struct {
             self.z * vector.x - self.x * vector.z,
             self.x * vector.y - self.y * vector.x 
             );
+    }
+
+    pub fn lerp(lhs: *const Vec3, rhs: *const Vec3, t: f32) Vec3 {
+        if (t > 1.0) {
+            return Vec3.set(rhs.x, rhs.y, rhs.z);
+        } else {
+            if (t < 0.0) {
+                return Vec3.set(lhs.x, lhs.y, lhs.z);
+            }
+        }
+        return .{
+            .x = (rhs.x - lhs.x) * t + lhs.x,
+            .y = (rhs.y - lhs.y) * t + lhs.y,
+            .z = (rhs.z - lhs.z) * t + lhs.z,
+        };
     }
 
     pub fn add(lhs: *const Vec3, rhs: *const Vec3) Vec3 {
@@ -211,6 +230,39 @@ pub const Quat = struct {
         return .{.x = 0, .y = 0, .z = 0, .w = 1.0};
     }
 
+    pub fn slerp(lhs: *const Quat, rhs: *const Quat, t: f32) Quat {
+        var d = lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z + lhs.w * rhs.w;
+        var absDot = if(d < 0.0) -d else d;
+
+        // Set the first and second scale for the interpolation
+        var scale0 = 1.0 - t;
+        var scale1 = t;
+
+        // Check if the angle between the 2 quaternions was big enough to
+        // warrant such calculations
+        if ((1 - absDot) > 0.1) {// Get the angle between the 2 quaternions,
+            // and then store the sin() of that angle
+            var angle = acos(absDot);
+            var invSinTheta = 1.0 / sin(angle);
+
+            // Calculate the scale for q1 and q2, according to the angle and
+            // it's sine value
+            scale0 = (sin((1.0 - t) * angle) * invSinTheta);
+            scale1 = (sin((t * angle)) * invSinTheta);
+        }
+
+        if (d < 0.0) scale1 = -scale1;
+
+        // Calculate the x, y, z and w values for the quaternion by using a
+        // special form of linear interpolation for quaternions.
+        return .{
+            .x = (scale0 * lhs.x) + (scale1 * rhs.x),
+            .y = (scale0 * lhs.y) + (scale1 * rhs.y),
+            .z = (scale0 * lhs.z) + (scale1 * rhs.z),
+            .w = (scale0 * lhs.w) + (scale1 * rhs.w),
+        };
+    }
+
     pub inline fn set(x: f32, y: f32, z: f32, w: f32) Quat {
         return .{.x = x, .y = y, .w = w};
     }
@@ -226,6 +278,7 @@ pub const Quat = struct {
     pub inline fn from_axis(axis: *const Vec3, rad: f32) Quat {
         return from_axisf(axis.x, axis.y, axis.z, rad);
     }
+
     pub inline fn from_axisf(x: f32, y: f32, z: f32, rad: f32) Quat {
         var d = Vec3.len(x, y, z);
 

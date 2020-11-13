@@ -83,8 +83,7 @@ pub const Node = struct {
     }
 
     pub fn calculate_bone_transforms(self: *Node, recursive: bool) void {
-        // TODO: implement
-        for(self.parts) |*part| {
+        for(self.parts) |part| {
             if(part.inv_bone_transforms.len == 0 or part.bones.len == 0 or  part.inv_bone_transforms.len != part.bones.len)
                 continue;
             const n = part.inv_bone_transforms.len;

@@ -71,7 +71,7 @@ pub const AnimationDesc = struct {
                     var result: f32 =
                         @intToFloat(f32, loops - 1 - i) * self.duration +
                         if (diff < 0.0)
-                            self.duration - self.time
+                            (self.duration - self.time)
                         else
                             self.time;
 
@@ -162,12 +162,13 @@ pub const AnimationController = struct {
             return;
 
         var remain = self.current.?.update(dt);
-        if(remain != 0.0 and self.queued != null) {
+        if(self.queued != null) {
             self.in_action = false;
 
             self.animate(self.queued.?, self.queued_transition_time);
             self.queued = null;
-            self.update(remain);
+            if(remain != 0.0)
+                self.update(remain);
             return;
         }
 
@@ -195,9 +196,10 @@ pub const AnimationController = struct {
         } else if(self.in_action) {
             self.queue(anim, transitionTime);
         } else if(!self.allow_same_animation and self.current.?.animation == anim.animation) {
-            @panic("can't anim.time = since it is const");
-            //anim.time = self.current.?.time;
-            //self.current = anim;
+            const time = self.current.?.time;
+            self.current = anim;
+            self.current.?.time = time;
+            
         } else {
             if(self.previous != null) {
                 self.remove_animation(self.previous.?.animation.?);
@@ -279,7 +281,11 @@ pub const AnimationController = struct {
         var index = get_first_keyframe_at_time(Vec3, nodeAnim.translation, time);
         var firstKeyframe = &nodeAnim.translation[index];
         
-        // TODO: add lerping
+        if((index + 1) < nodeAnim.translation.len) {
+            const secondKeyframe = nodeAnim.translation[index + 1];
+            const t = (time - firstKeyframe.keytime) / (secondKeyframe.keytime - firstKeyframe.keytime);
+            return firstKeyframe.value.lerp(&secondKeyframe.value, t);
+        }
 
         return firstKeyframe.value;
     } 
@@ -291,8 +297,12 @@ pub const AnimationController = struct {
         var index = get_first_keyframe_at_time(Quat, nodeAnim.rotation, time);
         var firstKeyframe = &nodeAnim.rotation[index];
         
-        // TODO: add lerping
-        
+        if((index + 1) < nodeAnim.rotation.len) {
+            const secondKeyframe = nodeAnim.rotation[index + 1];
+            const t = (time - firstKeyframe.keytime) / (secondKeyframe.keytime - firstKeyframe.keytime);
+            //return firstKeyframe.value.slerp(&secondKeyframe.value, t);
+        }
+
         return firstKeyframe.value;
 
     } 
@@ -304,8 +314,12 @@ pub const AnimationController = struct {
         var index = get_first_keyframe_at_time(Vec3, nodeAnim.scaling, time);
         var firstKeyframe = &nodeAnim.scaling[index];
         
-        // TODO: add lerping
-        
+        if((index + 1) < nodeAnim.scaling.len) {
+            const secondKeyframe = nodeAnim.scaling[index + 1];
+            const t = (time - firstKeyframe.keytime) / (secondKeyframe.keytime - firstKeyframe.keytime);
+            return firstKeyframe.value.lerp(&secondKeyframe.value, t);
+        }
+
         return firstKeyframe.value;
 
     } 
@@ -320,7 +334,7 @@ pub const AnimationController = struct {
         var maxIndex: usize = lastIndex;
 
         while(minIndex < maxIndex) {
-            const i: usize = (minIndex + maxIndex) / 2;
+            const i: usize = @divFloor((minIndex + maxIndex), 2);
             if(time > array[i + 1].keytime) {
                 minIndex = i + 1;
             } else if(time < array[i].keytime) {
@@ -329,6 +343,6 @@ pub const AnimationController = struct {
                 return i;
             }
         }
-        return 0;
+        return minIndex;
     }
 };
