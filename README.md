@@ -1,9 +1,3 @@
-# IMPORTANT
-
-
-This project is abandonned, the ZIG programming language has good ideas, but unfortunatly, the language is way too verbose and unpractical for gamedev, so i decided to not continue with it
-
-
 ## ZARK
 
 ZARK is a simple OpenGL game framework, it is not a fully featured engine, instead it gives you simple APIs to get started
